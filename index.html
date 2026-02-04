@@ -15,6 +15,7 @@
         .price-val { color: #10b981; font-size: 1.6rem; font-weight: bold; }
         .btn-city.active { background-color: #4ecca3; color: #0f172a; border-color: #4ecca3; }
         .rent-box { border: 2px solid #4ecca3; background: rgba(78, 204, 163, 0.05); }
+        .status-box { border: 1px solid #f1c40f; background: rgba(241, 196, 15, 0.1); display: none; }
         .notice-section { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-top: 20px; }
         .notice-item { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; }
     </style>
@@ -68,21 +69,32 @@
                         <h3 class="text-warning fw-bold"><span id="ethRateDisplay">0.00425</span> ETH</h3>
                     </div>
                 </div>
+
+                <div id="statusBox" class="glass status-box mb-4">
+                    <h6 class="text-warning fw-bold mb-2">📋 目前租借資訊 (鏈上即時數據)</h6>
+                    <div class="row small">
+                        <div class="col-6">狀態：<span class="text-success fw-bold">使用中</span></div>
+                        <div class="col-6">押金：<span id="statusDeposit" class="fw-bold text-white">0</span> ETH</div>
+                        <div class="col-12 mt-2 border-top pt-2 opacity-75">
+                            開始時間：<span id="statusTime">--</span>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="d-grid gap-3 mb-4">
                     <button id="mainActionBtn" class="btn btn-success btn-lg rounded-pill fw-bold py-3 shadow" onclick="connectAndRent()">
                         立即連線錢包並支付 10 USD 押金
                     </button>
-                    <button class="btn btn-outline-warning btn-lg rounded-pill fw-bold py-2" onclick="returnBike()">
+                    <button id="returnBtn" class="btn btn-outline-warning btn-lg rounded-pill fw-bold py-2" onclick="returnBike()">
                         歸還單車並結算退款
                     </button>
                 </div>
 
                 <div class="notice-section">
                     <h5 class="text-white mb-3">📌 系統設計規範</h5>
-                    <div class="notice-item">● <strong>法幣定價</strong>：採用美元為計價單位，確保租賃成本不隨幣價劇烈波動。</div>
-                    <div class="notice-item">● <strong>預言機換算</strong>：支付與結算時皆即時呼叫 Chainlink 節點獲取 ETH/USD 匯率。</div>
-                    <div class="notice-item">● <strong>安全機制</strong>：智能合約採用 Check-Effects-Interactions 模式預防重入攻擊。</div>
+                    <div class="notice-item">● <strong>鏈上狀態查詢</strong>：透過 ethers.js 讀取合約 Mapping 數據，實現數據去中心化。</div>
+                    <div class="notice-item">● <strong>預言機換算</strong>：支付與結算時皆即時呼叫 Chainlink 節點獲取匯率。</div>
+                    <div class="notice-item">● <strong>安全機制</strong>：採用 Check-Effects-Interactions 模式預防重入攻擊。</div>
                 </div>
             </div>
         </div>
@@ -101,7 +113,7 @@
 
     let ethUsd = 2350;
 
-    // 天氣功能
+    // --- 數據更新功能 ---
     async function updateWeather(city) {
         try {
             const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
@@ -111,10 +123,9 @@
             document.getElementById('weatherDesc').innerText = data.weather[0].description;
             document.getElementById('btn-Taipei').classList.toggle('active', city === 'Taipei');
             document.getElementById('btn-Kaohsiung').classList.toggle('active', city === 'Kaohsiung');
-        } catch(e) { console.error("天氣更新失敗"); }
+        } catch(e) { console.error("天氣失敗"); }
     }
 
-    // 匯率功能
     async function updatePrice() {
         try {
             const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd,twd");
@@ -126,97 +137,89 @@
                 document.getElementById('ethRateDisplay').innerText = (10 / ethUsd).toFixed(5);
                 document.getElementById('syncStatus').innerText = "● 數據已更新 (即時)";
             }
-        } catch(e) { console.error("匯率更新失敗"); }
+        } catch(e) { console.error("匯率失敗"); }
     }
 
-    // 檢查 ethers 是否載入的輔助函數
+    // --- 核心區塊鏈功能 ---
     async function ensureEthers() {
         if (typeof window.ethers !== 'undefined') return true;
-        // 如果沒載入，等 1 秒再試一次
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(r => setTimeout(r, 1000));
         return typeof window.ethers !== 'undefined';
     }
 
-    async function checkConnection() {
-        if (window.ethereum) {
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (accounts.length > 0) {
-                    document.getElementById('walletDisplay').innerText = "錢包已連線: " + accounts[0].substring(0, 6) + "..." + accounts[0].substring(38);
-                    return true;
-                }
-            } catch (err) { console.error(err); }
-        }
-        return false;
+    // 【新增】查詢鏈上租借紀錄
+    async function updateOnChainStatus() {
+        if (!window.ethereum || typeof window.ethers === 'undefined') return;
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const accounts = await provider.listAccounts();
+            if (accounts.length === 0) return;
+
+            const bikeContract = new ethers.Contract(contractAddress, contractABI, provider);
+            const info = await bikeContract.rentals(accounts[0]);
+
+            const statusBox = document.getElementById('statusBox');
+            const mainBtn = document.getElementById('mainActionBtn');
+
+            if (info.isRented) {
+                statusBox.style.display = 'block';
+                document.getElementById('statusDeposit').innerText = ethers.utils.formatEther(info.depositAmount);
+                const startTime = new Date(info.startTime.toNumber() * 1000);
+                document.getElementById('statusTime').innerText = startTime.toLocaleString();
+                
+                mainBtn.disabled = true;
+                mainBtn.innerText = "單車使用中 - 已鎖定押金";
+                mainBtn.className = "btn btn-secondary btn-lg rounded-pill fw-bold py-3 shadow";
+            } else {
+                statusBox.style.display = 'none';
+                mainBtn.disabled = false;
+                mainBtn.innerText = "立即連線錢包並支付 10 USD 押金";
+                mainBtn.className = "btn btn-success btn-lg rounded-pill fw-bold py-3 shadow";
+            }
+        } catch (e) { console.error("同步失敗", e); }
     }
 
     async function connectAndRent() {
-        const ethersReady = await ensureEthers();
-        if (!ethersReady) {
-            alert("網頁套件載入較慢，請重新整頁面或稍候 3 秒再試！");
-            return;
-        }
-
-        if (!window.ethereum) { 
-            alert("未偵測到錢包！請安裝 MetaMask。"); 
-            return; 
-        }
+        if (!(await ensureEthers())) { alert("套件載入中..."); return; }
+        if (!window.ethereum) { alert("請安裝 MetaMask"); return; }
         
         try {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
             const signer = provider.getSigner();
-            const userAddress = await signer.getAddress();
-            document.getElementById('walletDisplay').innerText = "錢包已連線: " + userAddress.substring(0, 6) + "...";
-
             const bikeContract = new ethers.Contract(contractAddress, contractABI, signer);
+
             const minDepositWei = await bikeContract.convertUSDtoETH(10);
             
-            const confirmRent = confirm(`系統將呼叫合約進行租借\n應付押金：${ethers.utils.formatEther(minDepositWei)} ETH (約 10 USD)\n是否發送交易？`);
-            
-            if (confirmRent) {
+            if (confirm(`準備支付押金：${ethers.utils.formatEther(minDepositWei)} ETH`)) {
                 const tx = await bikeContract.rentBike({ value: minDepositWei });
-                document.getElementById('mainActionBtn').innerText = "區塊鏈交易處理中...";
-                document.getElementById('mainActionBtn').disabled = true;
-                
+                document.getElementById('mainActionBtn').innerText = "等待區塊鏈確認中...";
                 await tx.wait();
-                alert("租借成功！錢包已扣除押金。");
-                location.reload(); 
+                alert("租借成功！");
+                updateOnChainStatus();
             }
-        } catch (error) {
-            console.error(error);
-            alert("操作失敗: " + (error.data?.message || error.message));
-            document.getElementById('mainActionBtn').innerText = "立即連線錢包並支付 10 USD 押金";
-            document.getElementById('mainActionBtn').disabled = false;
-        }
+        } catch (error) { alert("操作失敗: " + error.message); }
     }
 
     async function returnBike() {
-        const ethersReady = await ensureEthers();
-        if (!ethersReady) { alert("套件載入中，請稍候再試。"); return; }
-        
-        if (!window.ethereum) { alert("請安裝 MetaMask！"); return; }
+        if (!window.ethereum) return;
         try {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
-            await provider.send("eth_requestAccounts", []);
             const signer = provider.getSigner();
             const bikeContract = new ethers.Contract(contractAddress, contractABI, signer);
 
             const tx = await bikeContract.returnBike();
-            alert("正在結算租金並退還剩餘押金，請確認 MetaMask...");
+            alert("正在結算並退款...");
             await tx.wait();
-            alert("歸還完成！租金已結算，剩餘餘額已退回錢包。");
-            location.reload();
-        } catch (error) {
-            alert("結算失敗：請確認是否有租借中的單車，或檢查餘額是否足以支付 Gas。");
-        }
+            alert("歸還成功！");
+            updateOnChainStatus();
+        } catch (error) { alert("結算失敗，請確認您目前是否有租車。"); }
     }
 
-    // 初始化執行
-    checkConnection();
+    // 初始化
     updateWeather('Taipei');
     updatePrice();
-    setInterval(updatePrice, 30000);
+    setInterval(updateOnChainStatus, 5000); // 每 5 秒自動掃描一次鏈上數據
 </script>
 </body>
 </html>
