@@ -20,7 +20,7 @@
 <div class="container py-5">
     <div class="text-center mb-4">
         <h1 class="fw-bold">🚲 SmartBike Dashboard</h1>
-        <span class="badge bg-info mb-3">Chainlink Oracle 模擬連線中</span>
+        <span class="badge bg-info mb-3">Chainlink Oracle 實時連線中</span>
     </div>
 
     <div class="row">
@@ -38,19 +38,16 @@
 
             <div class="glass">
                 <h5 class="text-white-50 mb-4 text-center">💰 即時匯率 (1ETH)</h5>
-                
                 <div class="mb-3">
                     <div class="price-title">美金價格 (USD)</div>
                     <div class="price-val" id="ethUsdDisplay">$ 2,350.00</div>
                 </div>
-                
                 <div class="mb-1">
                     <div class="price-title">台幣參考 (TWD)</div>
                     <div class="price-val" id="ethTwdDisplay" style="color: #45b3e0;">NT$ 74,025</div>
                 </div>
-                
                 <hr class="opacity-10">
-                <small id="syncStatus" class="text-muted d-block text-center small">● 系統同步中</small>
+                <small id="syncStatus" class="text-muted d-block text-center small">● 預言機數據同步中</small>
             </div>
         </div>
 
@@ -63,19 +60,25 @@
                         <h3 class="fw-bold">$1.00 <small class="fs-6">USD / hr</small></h3>
                     </div>
                     <div class="col-6">
-                        <p class="text-warning mb-1">應付代幣額</p>
-                        <h3 class="text-warning fw-bold"><span id="ethRateDisplay">0.000425</span> ETH</h3>
+                        <p class="text-warning mb-1">應付代幣額 (押金)</p>
+                        <h3 class="text-warning fw-bold"><span id="ethRateDisplay">0.00425</span> ETH</h3>
                     </div>
                 </div>
-                <button class="btn btn-success btn-lg w-100 rounded-pill fw-bold py-3 mb-4 shadow" onclick="connectAndRent()">
-                    立即連接錢包並租借
-                </button>
+                
+                <div class="d-grid gap-3 mb-4">
+                    <button class="btn btn-success btn-lg rounded-pill fw-bold py-3 shadow" onclick="connectAndRent()">
+                        立即支付 10 USD 押金租借
+                    </button>
+                    <button class="btn btn-outline-warning btn-lg rounded-pill fw-bold py-2" onclick="returnBike()">
+                        歸還單車並結算退款
+                    </button>
+                </div>
 
                 <div class="notice-section">
                     <h5 class="text-white mb-3">📌 系統設計規範</h5>
-                    <div class="notice-item">● <strong>法幣定價</strong>：採用美元為計價單位，避免 ETH 波動導致租金不穩。</div>
-                    <div class="notice-item">● <strong>預言機換算</strong>：支付時自動抓取最新匯率計算應付代幣額。</div>
-                    <div class="notice-item">● <strong>安全性</strong>：合約支援提款模式 (Withdrawal Pattern) 以保障資金安全。</div>
+                    <div class="notice-item">● <strong>法幣定價</strong>：採用美元為計價單位，確保租金穩定。</div>
+                    <div class="notice-item">● <strong>預言機換算</strong>：支付時呼叫 Chainlink 節點進行匯率計算。</div>
+                    <div class="notice-item">● <strong>安全機制</strong>：採用 Check-Effects-Interactions 模式預防重入攻擊。</div>
                 </div>
             </div>
         </div>
@@ -83,9 +86,19 @@
 </div>
 
 <script>
-    let ethUsd = 2350; 
-    let ethTwd = 74025;
+    // --- 1. 合約設定 ---
+    const contractAddress = "0x901f0B33350B37aF40281d6E715A79441Eb6c005"; 
+    const contractABI = [
+        "function rentBike() public payable",
+        "function returnBike() public",
+        "function convertUSDtoETH(uint256 _usdAmount) public view returns (uint256)",
+        "function rentals(address) public view returns (uint256 startTime, uint256 depositAmount, bool isRented)",
+        "function getLatestPrice() public view returns (int)"
+    ];
 
+    let ethUsd = 2350;
+
+    // --- 2. 數據更新邏輯 (天氣與匯率) ---
     async function updateWeather(city) {
         try {
             const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
@@ -95,44 +108,67 @@
             document.getElementById('weatherDesc').innerText = data.weather[0].description;
             document.getElementById('btn-Taipei').classList.toggle('active', city === 'Taipei');
             document.getElementById('btn-Kaohsiung').classList.toggle('active', city === 'Kaohsiung');
-        } catch(e) { console.log("天氣抓取中..."); }
+        } catch(e) { console.error("天氣更新失敗"); }
     }
 
     async function updatePrice() {
-        const syncStatus = document.getElementById('syncStatus');
         try {
             const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd,twd");
             const data = await res.json();
-            
             if(data.ethereum) {
                 ethUsd = data.ethereum.usd;
-                ethTwd = data.ethereum.twd;
-                syncStatus.innerText = "● 數據已更新 (即時匯率)";
-                syncStatus.className = "text-success small d-block text-center";
+                document.getElementById('ethUsdDisplay').innerText = "$ " + ethUsd.toLocaleString();
+                document.getElementById('ethTwdDisplay').innerText = "NT$ " + data.ethereum.twd.toLocaleString();
+                // 這裡更新畫面上的 10 USD 押金參考值
+                document.getElementById('ethRateDisplay').innerText = (10 / ethUsd).toFixed(5);
+                document.getElementById('syncStatus').innerText = "● 數據已更新 (即時)";
             }
-        } catch(e) {
-            syncStatus.innerText = "● API 頻率限制 (顯示參考價)";
-            syncStatus.className = "text-warning small d-block text-center";
-        } finally {
-            document.getElementById('ethUsdDisplay').innerText = "$ " + ethUsd.toLocaleString();
-            document.getElementById('ethTwdDisplay').innerText = "NT$ " + ethTwd.toLocaleString();
-            document.getElementById('ethRateDisplay').innerText = (1 / ethUsd).toFixed(6);
-        }
+        } catch(e) { console.error("匯率更新失敗"); }
     }
 
+    // --- 3. 區塊鏈互動功能 ---
     async function connectAndRent() {
         if (!window.ethereum) { alert("請安裝 MetaMask！"); return; }
         try {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
-            const ethNeeded = 1.0 / ethUsd;
-            alert(`已連線錢包！\n目前匯率：$${ethUsd} USD\n約合：NT$${ethTwd}\n應支付：${ethNeeded.toFixed(6)} ETH`);
-        } catch (error) { alert("失敗: " + error.message); }
+            const signer = provider.getSigner();
+            const bikeContract = new ethers.Contract(contractAddress, contractABI, signer);
+
+            // 呼叫合約計算 10 USD 押金
+            const minDepositWei = await bikeContract.convertUSDtoETH(10);
+            
+            alert(`MetaMask 將彈出確認...\n應付押金：${ethers.utils.formatEther(minDepositWei)} ETH`);
+
+            const tx = await bikeContract.rentBike({ value: minDepositWei });
+            await tx.wait();
+            alert("租借成功！");
+        } catch (error) {
+            alert("操作失敗: " + error.message);
+        }
     }
 
+    async function returnBike() {
+        if (!window.ethereum) { alert("請安裝 MetaMask！"); return; }
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            const signer = provider.getSigner();
+            const bikeContract = new ethers.Contract(contractAddress, contractABI, signer);
+
+            const tx = await bikeContract.returnBike();
+            alert("正在結算租金並退還押金，請稍候...");
+            await tx.wait();
+            alert("歸還成功！餘額已退回錢包。");
+        } catch (error) {
+            alert("歸還失敗 (可能未到租借時間或無租借紀錄): " + error.message);
+        }
+    }
+
+    // 啟動與自動循環
     updateWeather('Taipei');
     updatePrice();
-    setInterval(updatePrice, 45000);
+    setInterval(updatePrice, 60000);
 </script>
 </body>
 </html>
