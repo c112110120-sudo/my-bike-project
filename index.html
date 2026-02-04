@@ -14,6 +14,7 @@
         .rent-box { border: 2px solid #4ecca3; background: rgba(78, 204, 163, 0.05); }
         .notice-section { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-top: 20px; }
         .notice-item { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; }
+        .wallet-status { font-size: 0.8rem; padding: 5px 15px; border-radius: 50px; }
     </style>
 </head>
 <body>
@@ -21,6 +22,7 @@
     <div class="text-center mb-4">
         <h1 class="fw-bold">🚲 SmartBike Dashboard</h1>
         <span class="badge bg-info mb-3">Chainlink Oracle 實時連線中</span>
+        <div id="walletDisplay" class="text-white-50 small mt-2">錢包狀態：未連結</div>
     </div>
 
     <div class="row">
@@ -66,7 +68,7 @@
                 </div>
                 
                 <div class="d-grid gap-3 mb-4">
-                    <button class="btn btn-success btn-lg rounded-pill fw-bold py-3 shadow" onclick="connectAndRent()">
+                    <button id="mainActionBtn" class="btn btn-success btn-lg rounded-pill fw-bold py-3 shadow" onclick="connectAndRent()">
                         立即支付 10 USD 押金租借
                     </button>
                     <button class="btn btn-outline-warning btn-lg rounded-pill fw-bold py-2" onclick="returnBike()">
@@ -86,7 +88,7 @@
 </div>
 
 <script>
-    // --- 1. 合約設定 ---
+    // --- 1. 合約與基本設定 ---
     const contractAddress = "0x901f0B33350B37aF40281d6E715A79441Eb6c005"; 
     const contractABI = [
         "function rentBike() public payable",
@@ -98,7 +100,7 @@
 
     let ethUsd = 2350;
 
-    // --- 2. 數據更新邏輯 (天氣與匯率) ---
+    // --- 2. 外部數據 API (天氣與匯率) ---
     async function updateWeather(city) {
         try {
             const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
@@ -119,7 +121,6 @@
                 ethUsd = data.ethereum.usd;
                 document.getElementById('ethUsdDisplay').innerText = "$ " + ethUsd.toLocaleString();
                 document.getElementById('ethTwdDisplay').innerText = "NT$ " + data.ethereum.twd.toLocaleString();
-                // 這裡更新畫面上的 10 USD 押金參考值
                 document.getElementById('ethRateDisplay').innerText = (10 / ethUsd).toFixed(5);
                 document.getElementById('syncStatus').innerText = "● 數據已更新 (即時)";
             }
@@ -127,24 +128,51 @@
     }
 
     // --- 3. 區塊鏈互動功能 ---
+    
+    // 自動檢查連線狀態
+    async function checkConnection() {
+        if (window.ethereum) {
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+            if (accounts.length > 0) {
+                document.getElementById('walletDisplay').innerText = "錢包已連線: " + accounts[0].substring(0, 6) + "..." + accounts[0].substring(38);
+                return true;
+            }
+        }
+        return false;
+    }
+
     async function connectAndRent() {
         if (!window.ethereum) { alert("請安裝 MetaMask！"); return; }
+        
         try {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
-            await provider.send("eth_requestAccounts", []);
+            // 請求帳號連線
+            const accounts = await provider.send("eth_requestAccounts", []);
+            document.getElementById('walletDisplay').innerText = "錢包已連線: " + accounts[0].substring(0, 6) + "...";
+
             const signer = provider.getSigner();
             const bikeContract = new ethers.Contract(contractAddress, contractABI, signer);
 
-            // 呼叫合約計算 10 USD 押金
+            // 1. 呼叫合約計算 10 USD 押金 (這會呼叫 Chainlink Oracle)
             const minDepositWei = await bikeContract.convertUSDtoETH(10);
             
-            alert(`MetaMask 將彈出確認...\n應付押金：${ethers.utils.formatEther(minDepositWei)} ETH`);
-
-            const tx = await bikeContract.rentBike({ value: minDepositWei });
-            await tx.wait();
-            alert("租借成功！");
+            // 2. 彈出確認視窗
+            const confirmRent = confirm(`系統將呼叫合約進行租借\n應付押金：${ethers.utils.formatEther(minDepositWei)} ETH (約 10 USD)\n是否繼續？`);
+            
+            if (confirmRent) {
+                const tx = await bikeContract.rentBike({ value: minDepositWei });
+                document.getElementById('mainActionBtn').innerText = "交易處理中...";
+                document.getElementById('mainActionBtn').disabled = true;
+                
+                await tx.wait();
+                alert("租借成功！");
+                location.reload(); // 重新整理更新狀態
+            }
         } catch (error) {
-            alert("操作失敗: " + error.message);
+            console.error(error);
+            alert("操作失敗: " + (error.data?.message || error.message));
+            document.getElementById('mainActionBtn').innerText = "立即支付 10 USD 押金租借";
+            document.getElementById('mainActionBtn').disabled = false;
         }
     }
 
@@ -159,13 +187,15 @@
             const tx = await bikeContract.returnBike();
             alert("正在結算租金並退還押金，請稍候...");
             await tx.wait();
-            alert("歸還成功！餘額已退回錢包。");
+            alert("歸還成功！租金已結算，剩餘金額已退回錢包。");
+            location.reload();
         } catch (error) {
-            alert("歸還失敗 (可能未到租借時間或無租借紀錄): " + error.message);
+            alert("歸還失敗 (請確認您有租借紀錄且餘額足夠支付 Gas): " + error.message);
         }
     }
 
-    // 啟動與自動循環
+    // 初始化
+    checkConnection();
     updateWeather('Taipei');
     updatePrice();
     setInterval(updatePrice, 60000);
