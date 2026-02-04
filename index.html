@@ -14,7 +14,6 @@
         .rent-box { border: 2px solid #4ecca3; background: rgba(78, 204, 163, 0.05); }
         .notice-section { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-top: 20px; }
         .notice-item { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; }
-        .wallet-status { font-size: 0.8rem; padding: 5px 15px; border-radius: 50px; }
     </style>
 </head>
 <body>
@@ -22,7 +21,7 @@
     <div class="text-center mb-4">
         <h1 class="fw-bold">🚲 SmartBike Dashboard</h1>
         <span class="badge bg-info mb-3">Chainlink Oracle 實時連線中</span>
-        <div id="walletDisplay" class="text-white-50 small mt-2">錢包狀態：未連結</div>
+        <div id="walletDisplay" class="text-white-50 small mt-2">錢包狀態：未連結 (請點擊按鈕連線)</div>
     </div>
 
     <div class="row">
@@ -69,7 +68,7 @@
                 
                 <div class="d-grid gap-3 mb-4">
                     <button id="mainActionBtn" class="btn btn-success btn-lg rounded-pill fw-bold py-3 shadow" onclick="connectAndRent()">
-                        立即支付 10 USD 押金租借
+                        立即連線錢包並支付 10 USD 押金
                     </button>
                     <button class="btn btn-outline-warning btn-lg rounded-pill fw-bold py-2" onclick="returnBike()">
                         歸還單車並結算退款
@@ -78,9 +77,9 @@
 
                 <div class="notice-section">
                     <h5 class="text-white mb-3">📌 系統設計規範</h5>
-                    <div class="notice-item">● <strong>法幣定價</strong>：採用美元為計價單位，確保租金穩定。</div>
-                    <div class="notice-item">● <strong>預言機換算</strong>：支付時呼叫 Chainlink 節點進行匯率計算。</div>
-                    <div class="notice-item">● <strong>安全機制</strong>：採用 Check-Effects-Interactions 模式預防重入攻擊。</div>
+                    <div class="notice-item">● <strong>法幣定價</strong>：採用美元為計價單位，確保租賃成本不隨幣價劇烈波動。</div>
+                    <div class="notice-item">● <strong>預言機換算</strong>：支付與結算時皆即時呼叫 Chainlink 節點獲取 ETH/USD 匯率。</div>
+                    <div class="notice-item">● <strong>安全機制</strong>：智能合約採用 Check-Effects-Interactions 模式預防重入攻擊。</div>
                 </div>
             </div>
         </div>
@@ -98,7 +97,7 @@
         "function getLatestPrice() public view returns (int)"
     ];
 
-    let ethUsd = 2350;
+    let ethUsd = 2350; // 預設初始值
 
     // --- 2. 外部數據 API (天氣與匯率) ---
     async function updateWeather(city) {
@@ -121,6 +120,7 @@
                 ethUsd = data.ethereum.usd;
                 document.getElementById('ethUsdDisplay').innerText = "$ " + ethUsd.toLocaleString();
                 document.getElementById('ethTwdDisplay').innerText = "NT$ " + data.ethereum.twd.toLocaleString();
+                // 換算 10 USD 等於多少 ETH 顯示在介面上
                 document.getElementById('ethRateDisplay').innerText = (10 / ethUsd).toFixed(5);
                 document.getElementById('syncStatus').innerText = "● 數據已更新 (即時)";
             }
@@ -129,49 +129,60 @@
 
     // --- 3. 區塊鏈互動功能 ---
     
-    // 自動檢查連線狀態
+    // 自動檢查 MetaMask 是否已連線過
     async function checkConnection() {
         if (window.ethereum) {
-            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-            if (accounts.length > 0) {
-                document.getElementById('walletDisplay').innerText = "錢包已連線: " + accounts[0].substring(0, 6) + "..." + accounts[0].substring(38);
-                return true;
-            }
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    document.getElementById('walletDisplay').innerText = "錢包已連線: " + accounts[0].substring(0, 6) + "..." + accounts[0].substring(38);
+                    return true;
+                }
+            } catch (err) { console.error(err); }
         }
         return false;
     }
 
     async function connectAndRent() {
-        if (!window.ethereum) { alert("請安裝 MetaMask！"); return; }
+        if (typeof window.ethers === 'undefined') {
+            alert("ethers.js 尚未加載，請稍候再試。");
+            return;
+        }
+        if (!window.ethereum) { 
+            alert("未偵測到錢包！請安裝 MetaMask。"); 
+            return; 
+        }
         
         try {
+            // A. 強制要求連線帳號
             const provider = new ethers.providers.Web3Provider(window.ethereum);
-            // 請求帳號連線
-            const accounts = await provider.send("eth_requestAccounts", []);
-            document.getElementById('walletDisplay').innerText = "錢包已連線: " + accounts[0].substring(0, 6) + "...";
-
+            await provider.send("eth_requestAccounts", []);
             const signer = provider.getSigner();
+            const userAddress = await signer.getAddress();
+            document.getElementById('walletDisplay').innerText = "錢包已連線: " + userAddress.substring(0, 6) + "...";
+
+            // B. 建立合約物件
             const bikeContract = new ethers.Contract(contractAddress, contractABI, signer);
 
-            // 1. 呼叫合約計算 10 USD 押金 (這會呼叫 Chainlink Oracle)
+            // C. 呼叫合約計算 10 USD 押金 (此功能會用到合約內的 Chainlink 預言機)
             const minDepositWei = await bikeContract.convertUSDtoETH(10);
             
-            // 2. 彈出確認視窗
-            const confirmRent = confirm(`系統將呼叫合約進行租借\n應付押金：${ethers.utils.formatEther(minDepositWei)} ETH (約 10 USD)\n是否繼續？`);
+            // D. 二次確認
+            const confirmRent = confirm(`系統將呼叫合約進行租借\n應付押金：${ethers.utils.formatEther(minDepositWei)} ETH (約 10 USD)\n是否發送交易？`);
             
             if (confirmRent) {
                 const tx = await bikeContract.rentBike({ value: minDepositWei });
-                document.getElementById('mainActionBtn').innerText = "交易處理中...";
+                document.getElementById('mainActionBtn').innerText = "區塊鏈交易處理中...";
                 document.getElementById('mainActionBtn').disabled = true;
                 
-                await tx.wait();
-                alert("租借成功！");
-                location.reload(); // 重新整理更新狀態
+                await tx.wait(); // 等待交易打包
+                alert("租借成功！錢包已扣除押金。");
+                location.reload(); 
             }
         } catch (error) {
             console.error(error);
             alert("操作失敗: " + (error.data?.message || error.message));
-            document.getElementById('mainActionBtn').innerText = "立即支付 10 USD 押金租借";
+            document.getElementById('mainActionBtn').innerText = "立即連線錢包並支付 10 USD 押金";
             document.getElementById('mainActionBtn').disabled = false;
         }
     }
@@ -185,20 +196,20 @@
             const bikeContract = new ethers.Contract(contractAddress, contractABI, signer);
 
             const tx = await bikeContract.returnBike();
-            alert("正在結算租金並退還押金，請稍候...");
+            alert("正在結算租金並退還剩餘押金，請確認 MetaMask...");
             await tx.wait();
-            alert("歸還成功！租金已結算，剩餘金額已退回錢包。");
+            alert("歸還完成！租金已結算，剩餘餘額已退回錢包。");
             location.reload();
         } catch (error) {
-            alert("歸還失敗 (請確認您有租借紀錄且餘額足夠支付 Gas): " + error.message);
+            alert("結算失敗：請確認是否有租借中的單車，或檢查餘額是否足以支付 Gas。");
         }
     }
 
-    // 初始化
+    // 初始化執行
     checkConnection();
     updateWeather('Taipei');
     updatePrice();
-    setInterval(updatePrice, 60000);
+    setInterval(updatePrice, 30000); // 每 30 秒自動更新一次價格
 </script>
 </body>
 </html>
