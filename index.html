@@ -20,6 +20,7 @@
         .btn-main:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); color: white; }
         .notice-item { font-size: 0.85rem; color: #64748b; margin-bottom: 8px; display: flex; align-items: start; }
         .notice-item b { color: #334155; margin-right: 5px; }
+        .buy-box { border: 1px solid #10b981; background: rgba(16, 185, 129, 0.02); }
     </style>
 </head>
 <body>
@@ -48,12 +49,21 @@
                 <button class="btn btn-link btn-sm text-decoration-none mt-2" onclick="addNKUSTtoWallet()">+ 一鍵加入代幣至錢包</button>
             </div>
 
+            <div class="glass buy-box text-center">
+                <h5 class="price-title mb-3" style="color: #10b981;">🛒 購買高科幣</h5>
+                <p class="text-muted small">匯率：1 ETH = 1000 NKUST</p>
+                <div class="input-group mb-3 shadow-sm">
+                    <input type="number" id="buyAmount" class="form-control" placeholder="ETH 數量" step="0.01">
+                    <span class="input-group-text">ETH</span>
+                </div>
+                <button class="btn btn-success btn-sm w-100 rounded-pill fw-bold" onclick="buyNKUST()">立即兌換 NKUST</button>
+            </div>
+
             <div class="glass">
                 <h5 class="price-title mb-3">⚠️ 租車注意事項</h5>
                 <div class="notice-item">● <b>預扣押金</b>：租車時將預扣 10 顆 NKUST 作為押金。</div>
-                <div class="notice-item">● <b>計費方式</b>：每小時租金為 1 顆 NKUST（不足一小時按比例計算）。</div>
-                <div class="notice-item">● <b>智能結算</b>：還車時系統將自動計算使用時間，並將剩餘押金退還。</div>
-                <div class="notice-item">● <b>環境提示</b>：若天氣惡劣，建議暫緩租借以策安全。</div>
+                <div class="notice-item">● <b>計費方式</b>：每小時租金為 1 顆 NKUST。</div>
+                <div class="notice-item">● <b>智能結算</b>：還車時系統將自動退還剩餘押金。</div>
             </div>
         </div>
 
@@ -107,8 +117,19 @@
 <script>
     const bikeAddress = "0x901f0B33350B37aF40281d6E715A79441Eb6c005";
     const nkustAddress = "0x6b3f588981532574d636b7146449AD8B0741782B";
-    const erc20ABI = ["function balanceOf(address) view returns (uint256)", "function approve(address, uint256) returns (bool)", "function allowance(address, address) view returns (uint256)"];
-    const bikeABI = ["function rentBike() public", "function returnBike() public", "function rentals(address) public view returns (uint256, uint256, bool)"];
+    
+    // 合約 ABI (加入了 buyToken 功能)
+    const erc20ABI = [
+        "function balanceOf(address) view returns (uint256)", 
+        "function approve(address, uint256) returns (bool)", 
+        "function allowance(address, address) view returns (uint256)",
+        "function buyToken() public payable"
+    ];
+    const bikeABI = [
+        "function rentBike() public", 
+        "function returnBike() public", 
+        "function rentals(address) public view returns (uint256, uint256, bool)"
+    ];
 
     async function updateWeather(city) {
         try {
@@ -151,6 +172,27 @@
         const pRes = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
         const pData = await pRes.json();
         document.getElementById('ethUsdDisplay').innerText = "$ " + pData.ethereum.usd.toLocaleString();
+    }
+
+    // 同學兌換 NKUST 的邏輯
+    async function buyNKUST() {
+        const amount = document.getElementById('buyAmount').value;
+        if (!amount || amount <= 0) { alert("請輸入 ETH 數量"); return; }
+        
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            const signer = provider.getSigner();
+            const token = new ethers.Contract(nkustAddress, erc20ABI, signer);
+            
+            const tx = await token.buyToken({
+                value: ethers.utils.parseEther(amount)
+            });
+            alert("正在處理兌換交易...");
+            await tx.wait();
+            alert("兌換完成！您已獲得高科幣。");
+            init();
+        } catch(e) { alert("兌換失敗，請確認錢包內有足夠 ETH"); }
     }
 
     async function handleApprove() {
