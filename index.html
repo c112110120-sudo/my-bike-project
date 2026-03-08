@@ -225,25 +225,6 @@
 </div>
 
 <script>
-    function calculateRealtimeEth() {
-    const amount = document.getElementById('buyAmount').value;
-    const quoteElement = document.getElementById('ethQuote');
-    const ethUsdText = document.getElementById('ethUsdDisplay').innerText; // 抓取畫面上的匯率
-    
-    // 取得純數字匯率 (例如 1952.34)
-    const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 1952.34;
-    const usdToTwd = 32.5; // 設定美金對台幣匯率
-
-    if (!amount || amount <= 0) {
-        quoteElement.innerText = "請輸入欲購買的高科幣數量";
-        return;
-    }
-
-    // 計算公式： (台幣金額 / 台幣匯率) / ETH價格
-    const estimatedEth = ((amount / usdToTwd) / currentEthPrice).toFixed(6);
-
-    quoteElement.innerHTML = `需支付約 <span class="text-danger fw-bold">${estimatedEth} ETH</span>`;
-}
     const nkustAddr = "0x692D9FC10D3D74327A4B879936f265c9208273a4";
     const bikeAddr = "0x4faBff09Dd74F2C86d95C7212D9605bb7122BCED";
     const ADMIN_PASSWORD = "nkust";
@@ -253,40 +234,52 @@
         "function approve(address spender, uint256 amount) returns (bool)",
         "function allowance(address owner, address spender) view returns (uint256)",
         "function buyToken() payable",
-        "function rent()", // 根據你提供的代碼使用 rent
+        "function rent()", 
         "function returnBike()",
-        "function users(address) view returns (uint256 startTime, bool isRented)" // 根據你提供的代碼使用 users
+        "function users(address) view returns (uint256 startTime, bool isRented)"
     ];
 
+    function calculateRealtimeEth() {
+        const amount = document.getElementById('buyAmount').value;
+        const quoteElement = document.getElementById('ethQuote');
+        const ethUsdText = document.getElementById('ethUsdDisplay').innerText;
+        const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 1952.34;
+        const usdToTwd = 32.5; 
+
+        if (!amount || amount <= 0) {
+            quoteElement.innerText = "請輸入欲購買的高科幣數量";
+            return;
+        }
+        const estimatedEth = ((amount / usdToTwd) / currentEthPrice).toFixed(6);
+        quoteElement.innerHTML = `需支付約 <span class="text-danger fw-bold">${estimatedEth} ETH</span>`;
+    }
+
     async function init() {
-    if (!window.ethereum) return;
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const accounts = await provider.send("eth_requestAccounts", []);
-    const user = accounts[0];
+        if (!window.ethereum) return;
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const accounts = await provider.send("eth_requestAccounts", []);
+        const user = accounts[0];
 
-    // 更新餘額 (加上 Math.floor 讓數據漂亮)
-    const token = new ethers.Contract(nkustAddr, abi, provider);
-    const bal = await token.balanceOf(user);
-    const cleanBal = Math.floor(ethers.utils.formatUnits(bal, 18));
-    document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
+        const token = new ethers.Contract(nkustAddr, abi, provider);
+        const bal = await token.balanceOf(user);
+        const cleanBal = Math.floor(ethers.utils.formatUnits(bal, 18));
+        document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
 
-    // 檢查授權 (20 顆)
-    const allow = await token.allowance(user, bikeAddr);
-    if (allow.gte(ethers.utils.parseUnits("20", 18))) {
-        document.getElementById('rentBtn').disabled = false;
-        document.getElementById('approveBtn').innerHTML = `<span style="font-size: 2.5rem; margin-bottom: 10px;">✅</span><span style="font-size: 1.2rem;">授權已完成</span>`;
-        document.getElementById('approveBtn').disabled = true;
+        const allow = await token.allowance(user, bikeAddr);
+        if (allow.gte(ethers.utils.parseUnits("20", 18))) {
+            document.getElementById('rentBtn').disabled = false;
+            document.getElementById('approveBtn').innerHTML = `<span style="font-size: 2.5rem; margin-bottom: 10px;">✅</span><span style="font-size: 1.2rem;">授權已完成</span>`;
+            document.getElementById('approveBtn').disabled = true;
+        }
+
+        const bike = new ethers.Contract(bikeAddr, abi, provider);
+        const info = await bike.users(user); 
+        if (info.isRented) {
+            document.getElementById('statusBox').style.display = 'block';
+            document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
+            document.getElementById('rentBtn').disabled = true;
+        }
     }
-
-    // 檢查租借狀態
-    const bike = new ethers.Contract(bikeAddr, abi, provider);
-    const info = await bike.users(user); 
-    if (info.isRented) {
-        document.getElementById('statusBox').style.display = 'block';
-        document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
-        document.getElementById('rentBtn').disabled = true;
-    }
-}
 
     // --- 管理員邏輯 ---
     function showAdminLogin() { document.getElementById('adminModal').style.display = 'flex'; }
@@ -304,8 +297,6 @@
     async function loadHistory() {
         const logBody = document.getElementById('eventLog');
         const provider = new ethers.providers.Web3Provider(window.ethereum);
-        
-        // 同步數據看板
         document.getElementById('db-temp').innerText = document.getElementById('temp').innerText;
         document.getElementById('db-eth').innerText = document.getElementById('ethUsdDisplay').innerText;
 
@@ -316,21 +307,26 @@
             const info = await bike.users(user);
             
             let logHTML = "";
-            
-            // 在 loadHistory 函數內部的 logHTML += ... 之後修改
-if (info.isRented) {
-    // 顯示租借中 (藍色)
-    logHTML = `<tr class="table-primary">...</tr>` + logHTML; 
-} else {
-    // 顯示最近一次歸還紀錄 (讓後台看起來有抓到你剛剛還車的動作)
-    logHTML = `
-        <tr>
-            <td>${user.substring(0, 6)}...${user.substring(38)} (您)</td>
-            <td><span class="badge bg-success">RETURNED</span></td>
-            <td>${new Date().toLocaleString()}</td>
-            <td>已歸還 (鏈上確認)</td>
-        </tr>` + logHTML;
-}
+            if (info.isRented) {
+                logHTML = `
+                    <tr class="table-primary">
+                        <td>${user.substring(0, 6)}... (您)</td>
+                        <td><span class="badge bg-primary">RENTING</span></td>
+                        <td>${new Date(info.startTime.toNumber() * 1000).toLocaleString()}</td>
+                        <td>使用中</td>
+                    </tr>`;
+            } else {
+                logHTML = `
+                    <tr>
+                        <td>${user.substring(0, 6)}... (您)</td>
+                        <td><span class="badge bg-success">RETURNED</span></td>
+                        <td>${new Date().toLocaleString()}</td>
+                        <td>已歸還 (最新)</td>
+                    </tr>`;
+            }
+            logBody.innerHTML = logHTML; // 將產生的 HTML 放入表格
+        } catch (e) { console.error("History Error:", e); }
+    } // 這裡原本少了一個大括號！
 
     // --- 租賃執行函數 ---
     async function handleApprove() {
@@ -354,49 +350,31 @@ if (info.isRented) {
         await tx.wait(); location.reload();
     }
 
-   async function handleBuyTokens() {
-    const amountTwd = document.getElementById('buyAmount').value; // 這是使用者輸入的台幣數量
-    if (!amountTwd || amountTwd <= 0) {
-        alert("請輸入欲購買的數量");
-        return;
+    async function handleBuyTokens() {
+        const amountTwd = document.getElementById('buyAmount').value;
+        if (!amountTwd || amountTwd <= 0) { alert("請輸入數量"); return; }
+
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+            const token = new ethers.Contract(nkustAddr, abi, signer);
+            const ethUsdText = document.getElementById('ethUsdDisplay').innerText;
+            const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 1952.34;
+            const usdToTwd = 32.5; 
+            const ethToPay = ((amountTwd / usdToTwd) / currentEthPrice).toFixed(18);
+
+            const tx = await token.buyToken({ value: ethers.utils.parseEther(ethToPay.toString()) });
+            alert("交易中...");
+            await tx.wait();
+            alert("購買成功！");
+            init();
+        } catch (e) { alert("失敗或取消"); }
     }
 
-    try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const token = new ethers.Contract(nkustAddr, abi, signer);
-
-        // 1. 取得畫面上目前的即時匯率
-        const ethUsdText = document.getElementById('ethUsdDisplay').innerText;
-        const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 1952.34;
-        const usdToTwd = 32.5; 
-
-        // 2. 計算出真正要支付的 ETH 數量
-        // 公式： (台幣金額 / 32.5) / ETH美金價格
-        const ethToPay = ((amountTwd / usdToTwd) / currentEthPrice).toFixed(18); // 保持高精度
-
-        console.log(`準備購買 ${amountTwd} 高科幣，需支付 ${ethToPay} ETH`);
-
-        // 3. 發送交易
-        const tx = await token.buyToken({ 
-            value: ethers.utils.parseEther(ethToPay.toString()) 
-        });
-
-        alert("交易已發送，請等待區塊鏈確認...");
-        await tx.wait();
-        alert("購買成功！高科幣已存入您的錢包");
-        init(); // 刷新餘額
-    } catch (e) {
-        console.error("購買失敗:", e);
-        alert("交易取消或失敗，請檢查錢包餘額。");
-    }
-}
-
-    // --- API 輔助 ---
     async function updateWeather(city) {
         const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
         const data = await res.json();
-        document.getElementById('cityName').innerText = city === 'Taipei' ? "台北市" : "高雄市";
+        document.getElementById('cityName').innerText = (city === 'Taipei' ? "台北市" : "高雄市");
         document.getElementById('temp').innerText = Math.round(data.main.temp) + "°C";
     }
 
@@ -406,12 +384,13 @@ if (info.isRented) {
         document.getElementById('ethUsdDisplay').innerText = "$ " + data.ethereum.usd.toLocaleString();
     }
 
-window.onload = async () => { 
-    await init();           // 抓錢包跟租借狀態
-    updateWeather('Kaohsiung'); // 抓天氣
-    updatePrice();          // 抓 ETH 匯率
-    setInterval(updatePrice, 60000); // 每分鐘更新一次匯率
-};
+    window.onload = async () => { 
+        await init(); 
+        updateWeather('Kaohsiung'); 
+        updatePrice(); 
+        setInterval(updatePrice, 60000);
+    };
+    
 </script>
 </body>
 </html>
