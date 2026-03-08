@@ -95,10 +95,11 @@
         <div class="container-fluid px-0">
             <div class="row g-3 mb-3">
                 <div class="col-6">
-                    <button id="approveBtn" class="btn btn-outline-primary w-100 py-5 d-flex flex-column align-items-center justify-content-center fw-bold" onclick="handleApprove()" style="border-radius: 25px; border-width: 2px; min-height: 180px;">
-                        <span style="font-size: 2.5rem; margin-bottom: 10px;">✅</span>
-                        <span style="font-size: 1.2rem;">授權已完成</span>
-                    </button>
+    <button id="approveBtn" class="btn btn-outline-secondary w-100 py-5 d-flex flex-column align-items-center justify-content-center fw-bold" onclick="handleApprove()" style="border-radius: 25px; border-width: 2px; min-height: 180px;">
+        <span id="approveIcon" style="font-size: 2.5rem; margin-bottom: 10px;">🔓</span>
+        <span id="approveText" style="font-size: 1.2rem;">第一步：點擊授權</span>
+    </button>
+</div>
                 </div>
                 <div class="col-6">
                     <button id="rentBtn" class="btn btn-main w-100 py-5 d-flex flex-column align-items-center justify-content-center fw-bold text-white" onclick="handleRent()" disabled style="border-radius: 25px; background: #5191a1; min-height: 180px; border: none; box-shadow: 0 4px 12px rgba(81,145,161,0.3);">
@@ -274,15 +275,31 @@
         const allow = await token.allowance(user, bikeAddr);
         const minAllowance = ethers.utils.parseUnits("20", 18);
 
-        if (allow.gte(minAllowance)) {
-            // 如果授權夠了，按鈕變更樣式並解鎖「支付租借」
-            const appBtn = document.getElementById('approveBtn');
-            appBtn.classList.replace('btn-outline-primary', 'btn-light');
-            appBtn.disabled = true;
-            appBtn.innerHTML = `<span style="font-size: 2.5rem; margin-bottom: 10px;">✅</span><span style="font-size: 1.2rem;">授權已完成</span>`;
-            
-            document.getElementById('rentBtn').disabled = false; // 開啟租借按鈕
-        }
+       const appBtn = document.getElementById('approveBtn');
+const rentBtn = document.getElementById('rentBtn');
+
+if (allow.gte(minRequired)) {
+    // ✅ 如果授權足夠：變綠色、打勾、禁用按鈕防止重複點擊
+    appBtn.classList.replace('btn-outline-secondary', 'btn-success');
+    appBtn.classList.remove('btn-outline-primary'); // 確保移除舊樣式
+    appBtn.disabled = true;
+    document.getElementById('approveIcon').innerText = "✅";
+    document.getElementById('approveText').innerText = "授權已完成";
+    
+    // 開啟第二步的租借按鈕
+    rentBtn.disabled = false;
+    rentBtn.style.opacity = "1";
+} else {
+    // ❌ 如果授權不足：維持原樣或變回未完成
+    appBtn.classList.add('btn-outline-primary'); 
+    appBtn.disabled = false;
+    document.getElementById('approveIcon').innerText = "🔓";
+    document.getElementById('approveText').innerText = "第一步：點擊授權";
+    
+    // 鎖定第二步按鈕
+    rentBtn.disabled = true;
+    rentBtn.style.opacity = "0.5";
+}
 
         // 3. 檢查目前是否正在租車中
         const bike = new ethers.Contract(bikeAddr, abi, provider);
