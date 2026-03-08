@@ -11,13 +11,15 @@
         body { background: #f4f7f6; color: #334155; font-family: 'Noto Sans TC', sans-serif; }
         .glass { background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .page-title { background: linear-gradient(135deg, #0d9488, #0284c7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
-        .price-title { color: #64748b; font-size: 0.85rem; margin-bottom: 5px; font-weight: 500; text-transform: uppercase; }
+        .price-title { color: #64748b; font-size: 0.85rem; margin-bottom: 5px; font-weight: 500; text-uppercase; }
         .price-val { color: #0ea5e9; font-size: 1.6rem; font-weight: 700; }
         .btn-city.active { background: linear-gradient(135deg, #14b8a6, #0ea5e9); color: white; border: none; }
         .rent-box { border: 2px solid #0ea5e9; background: rgba(14, 165, 233, 0.02); }
         .status-box { border: 1px solid #f59e0b; background: rgba(245,158,11,0.05); display: none; }
         .btn-main { background: linear-gradient(135deg, #10b981, #14b8a6); color: white; border: none; font-weight: 600; border-radius: 50px; padding: 15px; }
         .btn-main:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); color: white; }
+        .notice-item { font-size: 0.85rem; color: #64748b; margin-bottom: 8px; display: flex; align-items: start; }
+        .notice-item b { color: #334155; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -36,14 +38,22 @@
                     <button class="btn btn-outline-secondary btn-sm btn-city" id="btn-Kaohsiung" onclick="updateWeather('Kaohsiung')">高雄</button>
                 </div>
                 <h4 id="cityName" class="fw-bold text-dark">Taipei</h4>
-                <h2 class="fw-bold my-2" id="temp" style="font-size: 2.5rem;">--°C</h2>
+                <h2 class="fw-bold my-2" id="temp" style="font-size: 2.2rem;">--°C</h2>
                 <p id="weatherDesc" class="text-muted small">同步中...</p>
             </div>
 
             <div class="glass text-center border-info">
                 <h5 class="price-title mb-3">💳 我的校園錢包</h5>
                 <div class="price-val" id="nkustBalanceDisplay">0.00 NKUST</div>
-                <button class="btn btn-link btn-sm text-decoration-none mt-2" onclick="addNKUSTtoWallet()">+ 加入代幣至錢包</button>
+                <button class="btn btn-link btn-sm text-decoration-none mt-2" onclick="addNKUSTtoWallet()">+ 一鍵加入代幣至錢包</button>
+            </div>
+
+            <div class="glass">
+                <h5 class="price-title mb-3">⚠️ 租車注意事項</h5>
+                <div class="notice-item">● <b>預扣押金</b>：租車時將預扣 10 顆 NKUST 作為押金。</div>
+                <div class="notice-item">● <b>計費方式</b>：每小時租金為 1 顆 NKUST（不足一小時按比例計算）。</div>
+                <div class="notice-item">● <b>智能結算</b>：還車時系統將自動計算使用時間，並將剩餘押金退還。</div>
+                <div class="notice-item">● <b>環境提示</b>：若天氣惡劣，建議暫緩租借以策安全。</div>
             </div>
         </div>
 
@@ -53,7 +63,7 @@
                 <div class="row mb-4 text-center">
                     <div class="col-6 border-end">
                         <p class="text-muted mb-1">系統定價 (USD)</p>
-                        <h3 class="fw-bold">$1.00 <small class="fs-6">/ hr</small></h3>
+                        <h3 class="fw-bold text-dark">$1.00 <small class="fs-6">/ hr</small></h3>
                     </div>
                     <div class="col-6">
                         <p class="text-info mb-1">即時匯率 (ETH/USD)</p>
@@ -62,11 +72,11 @@
                 </div>
 
                 <div id="statusBox" class="glass status-box mb-4">
-                    <h6 class="text-warning fw-bold mb-2">📋 鏈上租借紀錄</h6>
+                    <h6 class="text-warning fw-bold mb-2">📋 鏈上即時數據</h6>
                     <div class="row small">
                         <div class="col-6">狀態：<span class="text-success fw-bold">租借中</span></div>
                         <div class="col-6">押金：<span id="statusDeposit" class="fw-bold">0</span> NKUST</div>
-                        <div class="col-12 mt-2 border-top pt-2">時間：<span id="statusTime">--</span></div>
+                        <div class="col-12 mt-2 border-top pt-2 text-muted">起租時間：<span id="statusTime">--</span></div>
                     </div>
                 </div>
 
@@ -76,8 +86,18 @@
                     <button id="returnBtn" class="btn btn-outline-warning btn-lg rounded-pill fw-bold" onclick="handleReturn()">歸還單車並結算</button>
                 </div>
 
-                <div class="mt-4 pt-3 border-top text-center">
-                    <p class="text-muted x-small"><strong>NKUST 合約：</strong><br><code style="font-size: 0.75rem;">0x6b3f588981532574d636b7146449AD8B0741782B</code></p>
+                <div class="mt-4 pt-4 border-top">
+                    <h6 class="price-title mb-2">📄 智能合約資訊</h6>
+                    <div class="p-2 bg-light rounded border small">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">NKUST Token:</span>
+                            <code style="font-size: 0.75rem;">0x6b3f588...782B</code>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <span class="text-muted">Rental Contract:</span>
+                            <code style="font-size: 0.75rem;">0x901f0B3...c005</code>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -91,13 +111,15 @@
     const bikeABI = ["function rentBike() public", "function returnBike() public", "function rentals(address) public view returns (uint256, uint256, bool)"];
 
     async function updateWeather(city) {
-        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
-        const data = await res.json();
-        document.getElementById('cityName').innerText = data.name;
-        document.getElementById('temp').innerText = Math.round(data.main.temp) + "°C";
-        document.getElementById('weatherDesc').innerText = data.weather[0].description;
-        document.getElementById('btn-Taipei').classList.toggle('active', city === 'Taipei');
-        document.getElementById('btn-Kaohsiung').classList.toggle('active', city === 'Kaohsiung');
+        try {
+            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
+            const data = await res.json();
+            document.getElementById('cityName').innerText = data.name;
+            document.getElementById('temp').innerText = Math.round(data.main.temp) + "°C";
+            document.getElementById('weatherDesc').innerText = data.weather[0].description;
+            document.getElementById('btn-Taipei').classList.toggle('active', city === 'Taipei');
+            document.getElementById('btn-Kaohsiung').classList.toggle('active', city === 'Kaohsiung');
+        } catch(e) { console.error("天氣更新失敗"); }
     }
 
     async function init() {
@@ -132,34 +154,40 @@
     }
 
     async function handleApprove() {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        const signer = provider.getSigner();
-        const token = new ethers.Contract(nkustAddress, erc20ABI, signer);
-        const tx = await token.approve(bikeAddress, ethers.utils.parseUnits("1000", 18));
-        await tx.wait();
-        alert("授權成功！");
-        init();
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            const signer = provider.getSigner();
+            const token = new ethers.Contract(nkustAddress, erc20ABI, signer);
+            const tx = await token.approve(bikeAddress, ethers.utils.parseUnits("1000", 18));
+            await tx.wait();
+            alert("授權成功！");
+            init();
+        } catch(e) { alert("授權失敗"); }
     }
 
     async function handleRent() {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const bike = new ethers.Contract(bikeAddress, bikeABI, signer);
-        const tx = await bike.rentBike();
-        await tx.wait();
-        alert("取車成功！");
-        init();
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+            const bike = new ethers.Contract(bikeAddress, bikeABI, signer);
+            const tx = await bike.rentBike();
+            await tx.wait();
+            alert("取車成功！");
+            init();
+        } catch(e) { alert("租借失敗"); }
     }
 
     async function handleReturn() {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const bike = new ethers.Contract(bikeAddress, bikeABI, signer);
-        const tx = await bike.returnBike();
-        await tx.wait();
-        alert("還車成功！");
-        init();
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+            const bike = new ethers.Contract(bikeAddress, bikeABI, signer);
+            const tx = await bike.returnBike();
+            await tx.wait();
+            alert("還車成功！");
+            init();
+        } catch(e) { alert("還車失敗"); }
     }
 
     async function addNKUSTtoWallet() {
