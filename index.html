@@ -67,13 +67,23 @@
             </div>
 
             <div class="glass border-primary">
-                <h5 class="fw-bold mb-3">💳 我的錢包資產</h5>
-                <h3 id="nkustBalanceDisplay" class="fw-bold text-center my-3 text-primary">0.00 NKUST</h3>
-                <div class="input-group mb-2">
-                    <input type="number" id="buyAmount" class="form-control" placeholder="輸入 ETH 數量">
-                    <button class="btn btn-success" onclick="handleBuyTokens()">兌換</button>
-                </div>
-            </div>
+    <h5 class="fw-bold mb-3">💳 我的錢包資產</h5>
+    <div class="text-center">
+        <h3 id="nkustBalanceDisplay" class="fw-bold text-primary mb-1">0.00 NKUST</h3>
+        <p class="small text-muted mb-3">1 NKUST = 1 TWD (台幣)</p>
+    </div>
+    
+    <div class="input-group mb-2">
+        <span class="input-group-text bg-white">購買量</span>
+        <input type="number" id="buyAmount" class="form-control" placeholder="例如: 100" oninput="calculateRealtimeEth()">
+    </div>
+    <div id="ethQuote" class="small text-muted text-center mb-3" style="font-size: 0.8rem;">
+        請輸入欲購買的高科幣數量
+    </div>
+    <button class="btn btn-success w-100 fw-bold rounded-pill" onclick="handleBuyTokens()">
+        以 ETH 兌換高科幣
+    </button>
+</div>
         </div>
 
         <div class="col-md-7">
@@ -172,6 +182,25 @@
 </div>
 
 <script>
+    function calculateRealtimeEth() {
+    const amount = document.getElementById('buyAmount').value;
+    const quoteElement = document.getElementById('ethQuote');
+    const ethUsdText = document.getElementById('ethUsdDisplay').innerText; // 抓取畫面上的匯率
+    
+    // 取得純數字匯率 (例如 1952.34)
+    const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 1952.34;
+    const usdToTwd = 32.5; // 設定美金對台幣匯率
+
+    if (!amount || amount <= 0) {
+        quoteElement.innerText = "請輸入欲購買的高科幣數量";
+        return;
+    }
+
+    // 計算公式： (台幣金額 / 台幣匯率) / ETH價格
+    const estimatedEth = ((amount / usdToTwd) / currentEthPrice).toFixed(6);
+
+    quoteElement.innerHTML = `需支付約 <span class="text-danger fw-bold">${estimatedEth} ETH</span>`;
+}
     const nkustAddr = "0x692D9FC10D3D74327A4B879936f265c9208273a4";
     const bikeAddr = "0x4faBff09Dd74F2C86d95C7212D9605bb7122BCED";
     const ADMIN_PASSWORD = "nkust";
