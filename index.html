@@ -86,31 +86,72 @@
 </div>
         </div>
 
-        <div class="col-md-7">
+      <div class="col-md-7">
     <div class="glass h-100">
-        <h5 class="fw-bold mb-4 text-secondary">🚲 單車租賃控制台</h5>
+        <h5 class="fw-bold mb-4 text-secondary text-center">🚲 單車租賃控制台</h5>
         
         <div id="statusBox" class="status-box mb-4">
             <div class="fw-bold text-warning">● 系統偵測：您目前有一輛租借中的單車</div>
             <small class="text-muted">起租時間：<span id="statusTime">--</span></small>
         </div>
 
-        <div class="d-grid gap-3">
-            <button id="approveBtn" class="btn btn-outline-primary btn-lg fw-bold" onclick="handleApprove()">
-                第一步：授權 20 顆 NKUST
-            </button>
-            
-            <button id="rentBtn" class="btn btn-main btn-lg" onclick="handleRent()" disabled>
-                第二步：支付 20 NKUST (含 10 押金)
-            </button>
-            
-            <button id="returnBtn" class="btn btn-outline-danger mt-2 fw-bold" onclick="handleReturn()">
-                即刻歸還單車並退回押金
-            </button>
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <button id="approveBtn" class="btn btn-outline-primary w-100 h-100 fw-bold py-3 px-2 d-flex flex-column align-items-center justify-content-center" onclick="handleApprove()" style="min-height: 80px; border-radius: 15px;">
+                    <small class="d-block mb-1">第一步</small>
+                    <span>授權資產</span>
+                </button>
+            </div>
+            <div class="col-6">
+                <button id="rentBtn" class="btn btn-main w-100 h-100 fw-bold py-3 px-2 d-flex flex-column align-items-center justify-content-center" onclick="handleRent()" disabled style="min-height: 80px; border-radius: 15px;">
+                    <small class="d-block mb-1">第二步</small>
+                    <span>支付租還</span>
+                </button>
+            </div>
         </div>
+
+        <div class="row g-2">
+            <div class="col-12">
+                <button id="returnBtn" class="btn btn-outline-danger w-100 fw-bold py-3 shadow-sm" onclick="handleReturn()" style="border-radius: 15px; border-width: 2px;">
+                    🏁 即刻歸還單車並退回押金
+                </button>
+            </div>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="p-4 rounded-4" style="background: #fff5f5; border: 1px dashed #feb2b2;">
+            <h6 class="fw-bold text-danger text-center mb-4">🚲 歸還手續與資產結算說明</h6>
+            
+            <div class="container-fluid px-0">
+                <div class="row mb-3 align-items-start text-start">
+                    <div class="col-1 text-center">📍</div>
+                    <div class="col-11 ps-3">
+                        <div class="fw-bold text-dark small">定點停放</div>
+                        <div class="text-secondary" style="font-size: 0.75rem;">請確認停於校園指定區域，點擊後自動釋放車位。</div>
+                    </div>
+                </div>
+                <div class="row mb-3 align-items-start text-start">
+                    <div class="col-1 text-center">💳</div>
+                    <div class="col-11 ps-3">
+                        <div class="fw-bold text-dark small">資產結算</div>
+                        <div class="text-secondary" style="font-size: 0.75rem;">
+                            扣除 <span class="badge bg-danger-subtle text-danger">10 NKUST</span> 租金，退回 <span class="badge bg-success-subtle text-success">10 NKUST</span> 押金。
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-0 align-items-start text-start">
+                    <div class="col-1 text-center">🛡️</div>
+                    <div class="col-11 ps-3">
+                        <div class="fw-bold text-dark small">即時退費</div>
+                        <div class="text-secondary" style="font-size: 0.75rem;">無需審核，押金經區塊鏈確認後將立即匯入您的錢包。</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-                     
+</div>
+        
         <div class="mt-4 p-4 rounded-4" style="background: #fff5f5; border: 1px dashed #feb2b2;">
     <h5 class="fw-bold text-danger text-center mb-4">
         🚲 歸還手續與資產結算說明
