@@ -2,67 +2,161 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartBike | 預言機租賃系統</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     
     <style>
-        body { background: #0f172a; color: white; font-family: '微軟正黑體'; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); padding: 20px; margin-bottom: 20px; }
-        .price-title { color: #94a3b8; font-size: 0.85rem; margin-bottom: 5px; }
-        .price-val { color: #10b981; font-size: 1.6rem; font-weight: bold; }
-        .btn-city.active { background-color: #4ecca3; color: #0f172a; border-color: #4ecca3; }
-        .rent-box { border: 2px solid #4ecca3; background: rgba(78, 204, 163, 0.05); }
-        .status-box { border: 1px solid #f1c40f; background: rgba(241, 196, 15, 0.1); display: none; }
-        .notice-section { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-top: 20px; }
-        .notice-item { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; }
+        /* --- 全局樣式大修：轉向明亮、專業風格 --- */
+        body { 
+            background: #f4f7f6; /* 專業的淺白灰背景 */
+            color: #334155; /* 深藍灰文字，比純黑柔和 */
+            font-family: 'Noto Sans TC', sans-serif; /* 轉用更現代的字體 */
+        }
+
+        /* --- 卡片樣式大修：強化實體感與陰影 --- */
+        .glass { 
+            background: #ffffff; /* 純白卡片背景 */
+            border-radius: 16px; /* 稍小的圓角，看起來更精緻 */
+            border: 1px solid #e2e8f0; /* 極細的灰色邊框 */
+            padding: 24px; 
+            margin-bottom: 24px; 
+            /* 專業的水平擴散陰影 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); 
+            transition: box-shadow 0.3s ease;
+        }
+        .glass:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* --- 文字顏色微調 --- */
+        .text-white-50 { color: #64748b !important; } /* 深灰文字，非半透明 */
+        .page-title {
+            background: linear-gradient(135deg, #0d9488, #0284c7); /* 藍綠漸層標題 */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        /* --- 價格區塊大修 --- */
+        .price-title { color: #64748b; font-size: 0.9rem; margin-bottom: 8px; font-weight: 500;}
+        .price-val { color: #14b8a6; font-size: 1.8rem; font-weight: 700; } /* 柔和的藍綠色 */
+        
+        /* --- 城市按鈕大修 --- */
+        .btn-city {
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            transition: all 0.2s ease;
+        }
+        .btn-city:hover { background-color: #f1f5f9; color: #1e293b; border-color: #cbd5e1;}
+        .btn-city.active { 
+            background: linear-gradient(135deg, #14b8a6, #0ea5e9); /* 按鈕選中漸層 */
+            color: white; 
+            border-color: transparent; 
+            box-shadow: 0 2px 4px rgba(20, 184, 166, 0.2);
+        }
+
+        /* --- 租賃區塊大修：專業強調色 --- */
+        .rent-box { 
+            border: 2px solid #0ea5e9; /* 強調深藍色邊框 */
+            background: rgba(14, 165, 233, 0.02); /* 極淡的背景色藍 */
+        }
+        .text-warning { color: #f59e0b !important; } /* 更深、柔和的橘黃 */
+        .rent-price-val { color: #1e293b; font-weight: 700; }
+
+        /* --- 狀態區塊大修：明確的警示色 --- */
+        .status-box { 
+            border: 1px solid #f59e0b; 
+            background: rgba(245, 158, 11, 0.03); 
+            display: none; 
+            padding: 16px;
+        }
+        .status-box .text-warning { font-weight: 600; }
+        .text-success { color: #10b981 !important; } /* 更清晰的綠 */
+
+        /* --- 按鈕大修：專業、立體感 --- */
+        .btn-lg { border-radius: 50px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
+        
+        .btn-connect {
+            background: linear-gradient(135deg, #10b981, #14b8a6); /* 綠到藍綠漸層 */
+            border: transparent;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-connect:hover {
+            background: linear-gradient(135deg, #059669, #0d9488);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+        }
+        .btn-connect:disabled { background: #cbd5e1; box-shadow: none; color: #64748b;}
+
+        .btn-return {
+            border: 2px solid #f59e0b;
+            color: #f59e0b;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        .btn-return:hover { background-color: rgba(245, 158, 11, 0.05); transform: translateY(-1px);}
+
+        /* --- 規範區塊大修 --- */
+        .notice-section { border-top: 1px solid #e2e8f0; padding-top: 24px; margin-top: 24px; }
+        .notice-section h5 { color: #334155; font-weight: 600; }
+        .notice-item { font-size: 0.9rem; color: #64748b; margin-bottom: 12px; display: flex; align-items: flex-start;}
+        .notice-item strong { color: #334155; }
+        .notice-icon { color: #0ea5e9; margin-right: 10px; font-size: 1.1rem; }
     </style>
 </head>
 <body>
 <div class="container py-5">
-    <div class="text-center mb-4">
-        <h1 class="fw-bold">🚲 SmartBike Dashboard</h1>
-        <span class="badge bg-info mb-3">Chainlink Oracle 實時連線中</span>
+    <div class="text-center mb-5">
+        <h1 class="page-title mb-2">🚲 SmartBike Dashboard</h1>
+        <span class="badge bg-light text-dark shadow-sm border mb-3">
+            <span class="text-info">●</span> Chainlink Oracle 實時連線中
+        </span>
         <div id="walletDisplay" class="text-white-50 small mt-2">錢包狀態：未連結 (請點擊按鈕連線)</div>
     </div>
 
     <div class="row">
         <div class="col-md-4">
             <div class="glass text-center">
-                <h5 class="text-white-50 mb-3">📍 環境監測</h5>
-                <div class="btn-group mb-3 w-100">
-                    <button class="btn btn-outline-light btn-sm btn-city active" id="btn-Taipei" onclick="updateWeather('Taipei')">台北</button>
-                    <button class="btn btn-outline-light btn-sm btn-city" id="btn-Kaohsiung" onclick="updateWeather('Kaohsiung')">高雄</button>
+                <h5 class="price-title mb-3 text-uppercase tracking-wider">📍 環境監測</h5>
+                <div class="btn-group mb-4 w-100 shadow-sm rounded-pill" style="overflow: hidden;">
+                    <button class="btn btn-city btn-sm active" id="btn-Taipei" onclick="updateWeather('Taipei')">台北</button>
+                    <button class="btn btn-city btn-sm" id="btn-Kaohsiung" onclick="updateWeather('Kaohsiung')">高雄</button>
                 </div>
-                <h4 id="cityName">Taipei</h4>
-                <h2 class="fw-bold my-2" id="temp">--°C</h2>
-                <p id="weatherDesc" class="text-white-50 small">同步中...</p>
+                <h4 id="cityName" class="fw-bold mb-1" style="color: #1e293b;">Taipei</h4>
+                <h2 class="fw-bold my-3" id="temp" style="color: #1e293b; font-size: 2.5rem;">--°C</h2>
+                <p id="weatherDesc" class="text-white-50 small mb-0">數據同步中...</p>
             </div>
 
             <div class="glass">
-                <h5 class="text-white-50 mb-4 text-center">💰 即時匯率 (1ETH)</h5>
-                <div class="mb-3">
+                <h5 class="price-title mb-4 text-center text-uppercase tracking-wider">💰 即時匯率 (1ETH)</h5>
+                <div class="mb-4">
                     <div class="price-title">美金價格 (USD)</div>
                     <div class="price-val" id="ethUsdDisplay">$ 2,350.00</div>
                 </div>
-                <div class="mb-1">
+                <div class="mb-2">
                     <div class="price-title">台幣參考 (TWD)</div>
-                    <div class="price-val" id="ethTwdDisplay" style="color: #45b3e0;">NT$ 74,025</div>
+                    <div class="price-val" id="ethTwdDisplay" style="color: #0284c7;">NT$ 74,025</div>
                 </div>
-                <hr class="opacity-10">
+                <hr class="border-light opacity-100 my-3">
                 <small id="syncStatus" class="text-muted d-block text-center small">● 預言機數據同步中</small>
             </div>
         </div>
 
         <div class="col-md-8">
             <div class="glass rent-box h-100">
-                <h4 class="fw-bold mb-4">🚲 單次租車結算</h4>
-                <div class="row mb-4 text-center">
+                <h4 class="fw-bold mb-5" style="color: #1e293b;">🚲 單次租車結算</h4>
+                <div class="row mb-5 text-center align-items-center">
                     <div class="col-6 border-end">
                         <p class="text-white-50 mb-1">預計租金 (定價)</p>
-                        <h3 class="fw-bold">$1.00 <small class="fs-6">USD / hr</small></h3>
+                        <h3 class="rent-price-val">$1.00 <small class="text-muted fs-6 fw-normal">USD / hr</small></h3>
                     </div>
                     <div class="col-6">
                         <p class="text-warning mb-1">應付代幣額 (押金)</p>
@@ -70,31 +164,40 @@
                     </div>
                 </div>
 
-                <div id="statusBox" class="glass status-box mb-4">
-                    <h6 class="text-warning fw-bold mb-2">📋 目前租借資訊 (鏈上即時數據)</h6>
-                    <div class="row small">
+                <div id="statusBox" class="status-box rounded-3 mb-5 shadow-sm">
+                    <h6 class="text-warning fw-bold mb-3">📋 目前租借資訊 (鏈上即時數據)</h6>
+                    <div class="row small gx-2 gy-2">
                         <div class="col-6">狀態：<span class="text-success fw-bold">使用中</span></div>
-                        <div class="col-6">押金：<span id="statusDeposit" class="fw-bold text-white">0</span> ETH</div>
-                        <div class="col-12 mt-2 border-top pt-2 opacity-75">
+                        <div class="col-6">押金：<span id="statusDeposit" class="fw-bold text-dark">0</span> ETH</div>
+                        <div class="col-12 mt-2 border-top pt-2 text-muted">
                             開始時間：<span id="statusTime">--</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="d-grid gap-3 mb-4">
-                    <button id="mainActionBtn" class="btn btn-success btn-lg rounded-pill fw-bold py-3 shadow" onclick="connectAndRent()">
+                <div class="d-grid gap-4 mb-5">
+                    <button id="mainActionBtn" class="btn btn-connect btn-lg shadow" onclick="connectAndRent()">
                         立即連線錢包並支付 10 USD 押金
                     </button>
-                    <button id="returnBtn" class="btn btn-outline-warning btn-lg rounded-pill fw-bold py-2" onclick="returnBike()">
+                    <button id="returnBtn" class="btn btn-outline-warning btn-return btn-lg shadow-sm" onclick="returnBike()">
                         歸還單車並結算退款
                     </button>
                 </div>
 
                 <div class="notice-section">
-                    <h5 class="text-white mb-3">📌 系統設計規範</h5>
-                    <div class="notice-item">● <strong>鏈上狀態查詢</strong>：透過 ethers.js 讀取合約 Mapping 數據，實現數據去中心化。</div>
-                    <div class="notice-item">● <strong>預言機換算</strong>：支付與結算時皆即時呼叫 Chainlink 節點獲取匯率。</div>
-                    <div class="notice-item">● <strong>安全機制</strong>：採用 Check-Effects-Interactions 模式預防重入攻擊。</div>
+                    <h5 class="mb-3">📌 系統設計規範</h5>
+                    <div class="notice-item">
+                        <span class="notice-icon">✓</span>
+                        <span><strong>鏈上狀態查詢</strong>：透過 ethers.js 讀取合約 Mapping 數據，實現數據去中心化。</span>
+                    </div>
+                    <div class="notice-item">
+                        <span class="notice-icon">✓</span>
+                        <span><strong>預言機換算</strong>：支付與結算時皆即時呼叫 Chainlink 節點獲取匯率。</span>
+                    </div>
+                    <div class="notice-item">
+                        <span class="notice-icon">✓</span>
+                        <span><strong>安全機制</strong>：採用 Check-Effects-Interactions 模式預防重入攻擊。</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -102,6 +205,7 @@
 </div>
 
 <script>
+    // 原有的 JavaScript 邏輯保持不變
     const contractAddress = "0x901f0B33350B37aF40281d6E715A79441Eb6c005"; 
     const contractABI = [
         "function rentBike() public payable",
@@ -113,7 +217,7 @@
 
     let ethUsd = 2350;
 
-    // --- 數據更新功能 ---
+    // 天氣功能
     async function updateWeather(city) {
         try {
             const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
@@ -123,9 +227,10 @@
             document.getElementById('weatherDesc').innerText = data.weather[0].description;
             document.getElementById('btn-Taipei').classList.toggle('active', city === 'Taipei');
             document.getElementById('btn-Kaohsiung').classList.toggle('active', city === 'Kaohsiung');
-        } catch(e) { console.error("天氣失敗"); }
+        } catch(e) { console.error("天氣更新失敗"); }
     }
 
+    // 匯率功能
     async function updatePrice() {
         try {
             const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd,twd");
@@ -137,17 +242,10 @@
                 document.getElementById('ethRateDisplay').innerText = (10 / ethUsd).toFixed(5);
                 document.getElementById('syncStatus').innerText = "● 數據已更新 (即時)";
             }
-        } catch(e) { console.error("匯率失敗"); }
+        } catch(e) { console.error("匯率更新失敗"); }
     }
 
-    // --- 核心區塊鏈功能 ---
-    async function ensureEthers() {
-        if (typeof window.ethers !== 'undefined') return true;
-        await new Promise(r => setTimeout(r, 1000));
-        return typeof window.ethers !== 'undefined';
-    }
-
-    // 【新增】查詢鏈上租借紀錄
+    // 鏈上狀態查詢
     async function updateOnChainStatus() {
         if (!window.ethereum || typeof window.ethers === 'undefined') return;
         try {
@@ -169,36 +267,51 @@
                 
                 mainBtn.disabled = true;
                 mainBtn.innerText = "單車使用中 - 已鎖定押金";
-                mainBtn.className = "btn btn-secondary btn-lg rounded-pill fw-bold py-3 shadow";
+                mainBtn.className = "btn btn-secondary btn-lg rounded-pill fw-bold py-3 shadow"; // 保持舊有的樣式類別供JS修改
+                // 但建議在 CSS 中為新的 .btn-secondary 定義明亮模式樣式，這裡先不做大幅度JS修改
             } else {
                 statusBox.style.display = 'none';
                 mainBtn.disabled = false;
                 mainBtn.innerText = "立即連線錢包並支付 10 USD 押金";
-                mainBtn.className = "btn btn-success btn-lg rounded-pill fw-bold py-3 shadow";
+                mainBtn.className = "btn btn-connect btn-lg shadow"; // 恢復新的樣式類別
             }
         } catch (e) { console.error("同步失敗", e); }
     }
 
+    async function ensureEthers() {
+        if (typeof window.ethers !== 'undefined') return true;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return typeof window.ethers !== 'undefined';
+    }
+
     async function connectAndRent() {
-        if (!(await ensureEthers())) { alert("套件載入中..."); return; }
-        if (!window.ethereum) { alert("請安裝 MetaMask"); return; }
+        const ethersReady = await ensureEthers();
+        if (!ethersReady) { alert("套件載入中，請稍候。"); return; }
+        if (!window.ethereum) { alert("請安裝 MetaMask！"); return; }
         
         try {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
             const signer = provider.getSigner();
-            const bikeContract = new ethers.Contract(contractAddress, contractABI, signer);
+            const userAddress = await signer.getAddress();
+            document.getElementById('walletDisplay').innerText = "錢包已連線: " + userAddress.substring(0, 6) + "...";
 
+            const bikeContract = new ethers.Contract(contractAddress, contractABI, signer);
             const minDepositWei = await bikeContract.convertUSDtoETH(10);
             
-            if (confirm(`準備支付押金：${ethers.utils.formatEther(minDepositWei)} ETH`)) {
+            const confirmRent = confirm(`系統將呼叫合約進行租借\n應付押金：${ethers.utils.formatEther(minDepositWei)} ETH (約 10 USD)\n是否繼續？`);
+            
+            if (confirmRent) {
                 const tx = await bikeContract.rentBike({ value: minDepositWei });
-                document.getElementById('mainActionBtn').innerText = "等待區塊鏈確認中...";
+                document.getElementById('mainActionBtn').innerText = "交易處理中...";
                 await tx.wait();
                 alert("租借成功！");
                 updateOnChainStatus();
             }
-        } catch (error) { alert("操作失敗: " + error.message); }
+        } catch (error) {
+            console.error(error);
+            alert("操作失敗: " + error.message);
+        }
     }
 
     async function returnBike() {
@@ -216,7 +329,7 @@
         } catch (error) { alert("結算失敗，請確認您目前是否有租車。"); }
     }
 
-    // 初始化
+    // 初始化執行
     updateWeather('Taipei');
     updatePrice();
     setInterval(updateOnChainStatus, 5000); // 每 5 秒自動掃描一次鏈上數據
