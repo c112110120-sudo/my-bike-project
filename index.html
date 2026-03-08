@@ -13,13 +13,11 @@
         .page-title { background: linear-gradient(135deg, #0d9488, #0284c7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
         .price-title { color: #64748b; font-size: 0.85rem; margin-bottom: 5px; font-weight: 500; text-transform: uppercase; }
         .price-val { color: #0ea5e9; font-size: 1.6rem; font-weight: 700; }
-        .btn-city.active { background: linear-gradient(135deg, #14b8a6, #0ea5e9); color: white; border: none; }
         .rent-box { border: 2px solid #0ea5e9; background: rgba(14, 165, 233, 0.02); }
         .status-box { border: 1px solid #f59e0b; background: rgba(245,158,11,0.05); display: none; }
         .btn-main { background: linear-gradient(135deg, #10b981, #14b8a6); color: white; border: none; font-weight: 600; border-radius: 50px; padding: 15px; }
         .btn-main:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); color: white; }
-        .notice-item { font-size: 0.85rem; color: #64748b; margin-bottom: 8px; display: flex; align-items: start; }
-        .notice-item b { color: #334155; margin-right: 5px; }
+        .btn-main:disabled { background: #cbd5e1; transform: none; box-shadow: none; }
     </style>
 </head>
 <body>
@@ -33,11 +31,7 @@
         <div class="col-md-4">
             <div class="glass text-center">
                 <h5 class="price-title mb-3">📍 環境監測</h5>
-                <div class="btn-group mb-3 w-100 shadow-sm rounded-pill overflow-hidden">
-                    <button class="btn btn-outline-secondary btn-sm btn-city active" id="btn-Taipei" onclick="updateWeather('Taipei')">台北</button>
-                    <button class="btn btn-outline-secondary btn-sm btn-city" id="btn-Kaohsiung" onclick="updateWeather('Kaohsiung')">高雄</button>
-                </div>
-                <h4 id="cityName" class="fw-bold text-dark">Taipei</h4>
+                <h4 id="cityName" class="fw-bold text-dark">Kaohsiung</h4>
                 <h2 class="fw-bold my-2" id="temp" style="font-size: 2.2rem;">--°C</h2>
                 <p id="weatherDesc" class="text-muted small">同步中...</p>
             </div>
@@ -46,25 +40,24 @@
                 <h5 class="price-title text-center mb-3">💳 我的校園資產</h5>
                 <div class="text-center mb-3">
                     <div class="price-val" id="nkustBalanceDisplay">0.00 NKUST</div>
-                    <button class="btn btn-link btn-sm text-decoration-none" onclick="addNKUSTtoWallet()">+ 加入錢包顯示</button>
+                    <button class="btn btn-link btn-sm text-decoration-none" onclick="addNKUSTtoWallet()">+ 加入錢包</button>
                 </div>
-                
                 <hr>
-                
-                <h6 class="price-title mb-2">🛒 高科幣自動兌換</h6>
-                <p class="text-muted x-small" style="font-size: 0.7rem;">匯率：1 ETH = 1000 NKUST</p>
+                <h6 class="price-title mb-2">🛒 購買高科幣 (1:1000)</h6>
                 <div class="input-group input-group-sm mb-2">
-                    <input type="number" id="buyAmount" class="form-control" placeholder="欲支付 ETH" step="0.01">
+                    <input type="number" id="buyAmount" class="form-control" placeholder="ETH 數量" step="0.01">
                     <span class="input-group-text">ETH</span>
                 </div>
-                <button class="btn btn-success btn-sm w-100 rounded-pill fw-bold" onclick="handleBuyTokens()">立即兌換 NKUST</button>
+                <button class="btn btn-success btn-sm w-100 rounded-pill fw-bold" onclick="handleBuyTokens()">立即兌換</button>
             </div>
 
             <div class="glass">
                 <h5 class="price-title mb-3">⚠️ 租車須知</h5>
-                <div class="notice-item">● <b>預扣押金</b>：10 顆 NKUST。</div>
-                <div class="notice-item">● <b>自動兌換</b>：餘額不足可至上方即時換幣。</div>
-                <div class="notice-item">● <b>環境提示</b>：惡劣天氣建議暫緩租借。</div>
+                <div class="small text-muted">
+                    ● 租車押金：10 NKUST<br>
+                    ● 須先完成授權能力<br>
+                    ● 還車將自動退還押金
+                </div>
             </div>
         </div>
 
@@ -72,24 +65,10 @@
             <div class="glass rent-box h-100">
                 <h4 class="fw-bold mb-4">🚲 校園單車租賃系統</h4>
                 
-                <div class="row mb-4 text-center">
-                    <div class="col-6 border-end">
-                        <p class="text-muted mb-1">系統定價 (USD)</p>
-                        <h3 class="fw-bold text-dark">$1.00 <small class="fs-6">/ hr</small></h3>
-                    </div>
-                    <div class="col-6">
-                        <p class="text-info mb-1">即時匯率 (ETH/USD)</p>
-                        <h3 class="text-info fw-bold" id="ethUsdDisplay">$ --</h3>
-                    </div>
-                </div>
-
                 <div id="statusBox" class="glass status-box mb-4">
-                    <h6 class="text-warning fw-bold mb-2">📋 鏈上即時數據</h6>
-                    <div class="row small">
-                        <div class="col-6">狀態：<span class="text-success fw-bold">租借中</span></div>
-                        <div class="col-6">押金：<span id="statusDeposit" class="fw-bold">0</span> NKUST</div>
-                        <div class="col-12 mt-2 border-top pt-2 text-muted">起租時間：<span id="statusTime">--</span></div>
-                    </div>
+                    <h6 class="text-warning fw-bold mb-2">📋 租借狀態：租借中</h6>
+                    <div class="small">起租時間：<span id="statusTime">--</span></div>
+                    <div class="small">鎖定押金：<span id="statusDeposit">10.00</span> NKUST</div>
                 </div>
 
                 <div class="d-grid gap-3">
@@ -99,16 +78,10 @@
                 </div>
 
                 <div class="mt-4 pt-4 border-top">
-                    <h6 class="price-title mb-2">📄 智能合約資訊</h6>
-                    <div class="p-2 bg-light rounded border small">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted">NKUST Token:</span>
-                            <code style="font-size: 0.7rem;">0x6b3f588981532574d636b7146449AD8B0741782B</code>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">Rental Logic:</span>
-                            <code style="font-size: 0.7rem;">0x901f0B33350B37aF40281d6E715A79441Eb6c005</code>
-                        </div>
+                    <h6 class="price-title mb-2">📄 智能合約地址</h6>
+                    <div class="p-2 bg-light rounded border x-small" style="font-size: 0.7rem;">
+                        <div>NKUST: <code>0x6b3f588981532574d636b7146449AD8B0741782B</code></div>
+                        <div class="mt-1">Rental: <code>0x91242fD93af744401F8e2C7bAE51Af00a57d79Af</code></div>
                     </div>
                 </div>
             </div>
@@ -117,11 +90,10 @@
 </div>
 
 <script>
-    const bikeAddress = "0x901f0B33350B37aF40281d6E715A79441Eb6c005";
     const nkustAddress = "0x6b3f588981532574d636b7146449AD8B0741782B";
+    const bikeAddress = "0x91242fD93af744401F8e2C7bAE51Af00a57d79Af";
     
-    // 包含兌換函數的完整 ABI
-    const fullABI = [
+    const abi = [
         "function balanceOf(address) view returns (uint256)",
         "function approve(address, uint256) returns (bool)",
         "function allowance(address, address) view returns (uint256)",
@@ -131,18 +103,6 @@
         "function rentals(address) public view returns (uint256, uint256, bool)"
     ];
 
-    async function updateWeather(city) {
-        try {
-            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
-            const data = await res.json();
-            document.getElementById('cityName').innerText = data.name;
-            document.getElementById('temp').innerText = Math.round(data.main.temp) + "°C";
-            document.getElementById('weatherDesc').innerText = data.weather[0].description;
-            document.getElementById('btn-Taipei').classList.toggle('active', city === 'Taipei');
-            document.getElementById('btn-Kaohsiung').classList.toggle('active', city === 'Kaohsiung');
-        } catch(e) {}
-    }
-
     async function init() {
         if (!window.ethereum) return;
         const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -150,106 +110,84 @@
         
         if (accounts.length > 0) {
             document.getElementById('walletStatus').innerText = "已連線: " + accounts[0].substring(0, 8);
-            const token = new ethers.Contract(nkustAddress, fullABI, provider);
-            
-            // 1. 更新餘額
+            const token = new ethers.Contract(nkustAddress, abi, provider);
             const bal = await token.balanceOf(accounts[0]);
             document.getElementById('nkustBalanceDisplay').innerText = parseFloat(ethers.utils.formatUnits(bal, 18)).toFixed(2) + " NKUST";
             
-            // 2. 檢查授權
             const allow = await token.allowance(accounts[0], bikeAddress);
-            if (allow.gt(0)) {
-                document.getElementById('rentBtn').disabled = false;
-                document.getElementById('approveBtn').innerText = "✓ 已完成授權";
-                document.getElementById('approveBtn').disabled = true;
-            } else {
-                document.getElementById('rentBtn').disabled = true;
-                document.getElementById('approveBtn').innerText = "1. 授權合約使用 NKUST";
-                document.getElementById('approveBtn').disabled = false;
+            const rentBtn = document.getElementById('rentBtn');
+            const approveBtn = document.getElementById('approveBtn');
+            
+            if (allow.gt(ethers.utils.parseUnits("9", 18))) {
+                rentBtn.disabled = false;
+                approveBtn.innerText = "✓ 授權已完成";
+                approveBtn.classList.replace('btn-outline-info', 'btn-light');
+                approveBtn.disabled = true;
             }
 
-            // 3. 檢查租借狀態
-            const bike = new ethers.Contract(bikeAddress, fullABI, provider);
+            const bike = new ethers.Contract(bikeAddress, abi, provider);
             const info = await bike.rentals(accounts[0]);
             if (info[2]) {
                 document.getElementById('statusBox').style.display = 'block';
-                document.getElementById('statusDeposit').innerText = ethers.utils.formatUnits(info[1], 18);
                 document.getElementById('statusTime').innerText = new Date(info[0].toNumber()*1000).toLocaleString();
                 document.getElementById('rentBtn').disabled = true;
             } else {
                 document.getElementById('statusBox').style.display = 'none';
             }
         }
-        
-        // 更新 ETH 匯率
-        const pRes = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
-        const pData = await pRes.json();
-        document.getElementById('ethUsdDisplay').innerText = "$ " + pData.ethereum.usd.toLocaleString();
+        updateWeather();
     }
 
-    // 同學換幣函數
     async function handleBuyTokens() {
-        const ethAmount = document.getElementById('buyAmount').value;
-        if (!ethAmount || ethAmount <= 0) { alert("請輸入 ETH 數量"); return; }
-        
-        try {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const signer = provider.getSigner();
-            const tokenContract = new ethers.Contract(nkustAddress, fullABI, signer);
-            
-            const tx = await tokenContract.buyToken({
-                value: ethers.utils.parseEther(ethAmount)
-            });
-            alert("正在發送交易...");
-            await tx.wait();
-            alert("兌換成功！餘額已更新。");
-            init();
-        } catch(e) { alert("兌換失敗：" + e.message); }
+        const ethVal = document.getElementById('buyAmount').value;
+        if(!ethVal) return alert("請輸入數量");
+        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
+        const token = new ethers.Contract(nkustAddress, abi, signer);
+        const tx = await token.buyToken({ value: ethers.utils.parseEther(ethVal) });
+        await tx.wait();
+        init();
     }
 
     async function handleApprove() {
-        try {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const signer = provider.getSigner();
-            const token = new ethers.Contract(nkustAddress, fullABI, signer);
-            const tx = await token.approve(bikeAddress, ethers.utils.parseUnits("1000", 18));
-            await tx.wait();
-            alert("授權成功！現在可以取車了。");
-            init();
-        } catch(e) { alert("授權取消"); }
+        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
+        const token = new ethers.Contract(nkustAddress, abi, signer);
+        const tx = await token.approve(bikeAddress, ethers.utils.parseUnits("1000", 18));
+        await tx.wait();
+        init();
     }
 
     async function handleRent() {
         try {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const signer = provider.getSigner();
-            const bike = new ethers.Contract(bikeAddress, fullABI, signer);
+            const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
+            const bike = new ethers.Contract(bikeAddress, abi, signer);
             const tx = await bike.rentBike();
             await tx.wait();
-            alert("租借成功！");
+            alert("租車成功！");
             init();
-        } catch(e) { alert("租借失敗，請確認餘額是否足夠 10 NKUST"); }
+        } catch(e) { alert("租借失敗，請確認餘額"); }
     }
 
     async function handleReturn() {
-        try {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const signer = provider.getSigner();
-            const bike = new ethers.Contract(bikeAddress, fullABI, signer);
-            const tx = await bike.returnBike();
-            await tx.wait();
-            alert("歸還成功，剩餘押金已退回！");
-            init();
-        } catch(e) { alert("還車失敗"); }
+        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
+        const bike = new ethers.Contract(bikeAddress, abi, signer);
+        const tx = await bike.returnBike();
+        await tx.wait();
+        alert("還車成功！");
+        init();
+    }
+
+    async function updateWeather() {
+        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=Kaohsiung&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
+        const data = await res.json();
+        document.getElementById('temp').innerText = Math.round(data.main.temp) + "°C";
+        document.getElementById('weatherDesc').innerText = data.weather[0].description;
     }
 
     async function addNKUSTtoWallet() {
         await window.ethereum.request({ method: 'wallet_watchAsset', params: { type: 'ERC20', options: { address: nkustAddress, symbol: 'NKUST', decimals: 18 }}});
     }
 
-    updateWeather('Taipei');
-    init();
-    setInterval(init, 15000); // 每 15 秒同步一次狀態
+    window.onload = init;
 </script>
 </body>
 </html>
