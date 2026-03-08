@@ -226,7 +226,7 @@
 
 <script>
     const nkustAddr = "0x692D9FC10D3D74327A4B879936f265c9208273a4";
-    const bikeAddr = "0x4faBff09Dd74F2C86d95C7212D9605bb7122BCED";
+    const bikeAddr = "0x759e101BC51af51a73b17fbCb7d6598D2429ee22";
     const ADMIN_PASSWORD = "nkust";
     
     const abi = [
@@ -255,31 +255,47 @@
     }
 
     async function init() {
-        if (!window.ethereum) return;
+    if (!window.ethereum) return;
+    try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const accounts = await provider.send("eth_requestAccounts", []);
         const user = accounts[0];
 
+        // 1. 取得並格式化餘額 (解決數字亂跳)
         const token = new ethers.Contract(nkustAddr, abi, provider);
         const bal = await token.balanceOf(user);
-        const cleanBal = Math.floor(ethers.utils.formatUnits(bal, 18));
+        const formattedBal = ethers.utils.formatUnits(bal, 18); 
+        const cleanBal = Math.floor(parseFloat(formattedBal)); 
+        
+        // 將結果印到網頁上
         document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
 
+        // 2. 檢查授權狀態 (是否大於等於 20 顆)
         const allow = await token.allowance(user, bikeAddr);
-        if (allow.gte(ethers.utils.parseUnits("20", 18))) {
-            document.getElementById('rentBtn').disabled = false;
-            document.getElementById('approveBtn').innerHTML = `<span style="font-size: 2.5rem; margin-bottom: 10px;">✅</span><span style="font-size: 1.2rem;">授權已完成</span>`;
-            document.getElementById('approveBtn').disabled = true;
+        const minAllowance = ethers.utils.parseUnits("20", 18);
+
+        if (allow.gte(minAllowance)) {
+            // 如果授權夠了，按鈕變更樣式並解鎖「支付租借」
+            const appBtn = document.getElementById('approveBtn');
+            appBtn.classList.replace('btn-outline-primary', 'btn-light');
+            appBtn.disabled = true;
+            appBtn.innerHTML = `<span style="font-size: 2.5rem; margin-bottom: 10px;">✅</span><span style="font-size: 1.2rem;">授權已完成</span>`;
+            
+            document.getElementById('rentBtn').disabled = false; // 開啟租借按鈕
         }
 
+        // 3. 檢查目前是否正在租車中
         const bike = new ethers.Contract(bikeAddr, abi, provider);
         const info = await bike.users(user); 
         if (info.isRented) {
             document.getElementById('statusBox').style.display = 'block';
             document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
-            document.getElementById('rentBtn').disabled = true;
+            document.getElementById('rentBtn').disabled = true; // 租借中不能重複支付
         }
+    } catch (error) {
+        console.error("Initialization failed:", error);
     }
+}
 
     // --- 管理員邏輯 ---
     function showAdminLogin() { document.getElementById('adminModal').style.display = 'flex'; }
@@ -329,12 +345,28 @@
     } // 這裡原本少了一個大括號！
 
     // --- 租賃執行函數 ---
-    async function handleApprove() {
-        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
+async function handleApprove() {
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
         const token = new ethers.Contract(nkustAddr, abi, signer);
+
+        console.log("正在發起授權請求...");
+        
+        // 授權 100 顆 (確保足夠支付 20 顆的租金+押金)
+        // 使用 parseUnits("100", 18) 確保單位對齊鏈上的 18 位精度
         const tx = await token.approve(bikeAddr, ethers.utils.parseUnits("100", 18));
-        await tx.wait(); location.reload();
+        
+        alert("授權交易已送出，請等待區塊鏈確認...");
+        await tx.wait(); // 這裡會停下來直到鏈上確認成功
+        
+        alert("授權成功！現在可以進行租借。");
+        location.reload(); // 重新整理網頁，讓 init() 重新檢查授權狀態並開啟租借按鈕
+    } catch (e) {
+        console.error("授權失敗:", e);
+        alert("授權取消或失敗，請重試。");
     }
+}
 
     async function handleRent() {
         const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
