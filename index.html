@@ -259,36 +259,34 @@
     ];
 
     async function init() {
-        if (!window.ethereum) return;
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const accounts = await provider.send("eth_requestAccounts", []);
-        const user = accounts[0];
+    if (!window.ethereum) return;
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const accounts = await provider.send("eth_requestAccounts", []);
+    const user = accounts[0];
 
-        // 1. 更新餘額
-        const token = new ethers.Contract(nkustAddr, abi, provider);
-        const bal = await token.balanceOf(user);
-        
-        const rawBal = ethers.utils.formatUnits(bal, 18); // 先轉成數字字串
-        const cleanBal = Math.floor(parseFloat(rawBal)); // 強制取整數，去掉那一長串小數點
-    document.getElementById('nkustBalanceDisplay').innerText = cleanBal.toLocaleString() + " NKUST";
+    // 更新餘額 (加上 Math.floor 讓數據漂亮)
+    const token = new ethers.Contract(nkustAddr, abi, provider);
+    const bal = await token.balanceOf(user);
+    const cleanBal = Math.floor(ethers.utils.formatUnits(bal, 18));
+    document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
 
-        // 2. 檢查授權
-        const allow = await token.allowance(user, bikeAddr);
-        if (allow.gte(ethers.utils.parseUnits("0.1", 18))) {
-            document.getElementById('rentBtn').disabled = false;
-            document.getElementById('approveBtn').innerText = "✅ 授權已完成";
-            document.getElementById('approveBtn').disabled = true;
-        }
-
-        // 3. 檢查租借狀態
-        const bike = new ethers.Contract(bikeAddr, abi, provider);
-        const info = await bike.users(user);
-        if (info.isRented) {
-            document.getElementById('statusBox').style.display = 'block';
-            document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
-            document.getElementById('rentBtn').disabled = true;
-        }
+    // 檢查授權 (20 顆)
+    const allow = await token.allowance(user, bikeAddr);
+    if (allow.gte(ethers.utils.parseUnits("20", 18))) {
+        document.getElementById('rentBtn').disabled = false;
+        document.getElementById('approveBtn').innerHTML = `<span style="font-size: 2.5rem; margin-bottom: 10px;">✅</span><span style="font-size: 1.2rem;">授權已完成</span>`;
+        document.getElementById('approveBtn').disabled = true;
     }
+
+    // 檢查租借狀態
+    const bike = new ethers.Contract(bikeAddr, abi, provider);
+    const info = await bike.users(user); 
+    if (info.isRented) {
+        document.getElementById('statusBox').style.display = 'block';
+        document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
+        document.getElementById('rentBtn').disabled = true;
+    }
+}
 
     // --- 管理員邏輯 ---
     function showAdminLogin() { document.getElementById('adminModal').style.display = 'flex'; }
@@ -408,7 +406,12 @@ if (info.isRented) {
         document.getElementById('ethUsdDisplay').innerText = "$ " + data.ethereum.usd.toLocaleString();
     }
 
-    window.onload = () => { init(); updateWeather('Kaohsiung'); updatePrice(); setInterval(updatePrice, 60000); };
+window.onload = async () => { 
+    await init();           // 抓錢包跟租借狀態
+    updateWeather('Kaohsiung'); // 抓天氣
+    updatePrice();          // 抓 ETH 匯率
+    setInterval(updatePrice, 60000); // 每分鐘更新一次匯率
+};
 </script>
 </body>
 </html>
