@@ -13,11 +13,10 @@
         .page-title { background: linear-gradient(135deg, #0d9488, #0284c7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
         .price-title { color: #64748b; font-size: 0.85rem; margin-bottom: 5px; font-weight: 500; text-transform: uppercase; }
         .price-val { color: #0ea5e9; font-size: 1.6rem; font-weight: 700; }
+        .btn-city.active { background: linear-gradient(135deg, #14b8a6, #0ea5e9); color: white; border: none; }
         .rent-box { border: 2px solid #0ea5e9; background: rgba(14, 165, 233, 0.02); }
         .status-box { border: 1px solid #f59e0b; background: rgba(245,158,11,0.05); display: none; }
         .btn-main { background: linear-gradient(135deg, #10b981, #14b8a6); color: white; border: none; font-weight: 600; border-radius: 50px; padding: 15px; }
-        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); color: white; }
-        .btn-main:disabled { background: #cbd5e1; transform: none; box-shadow: none; }
     </style>
 </head>
 <body>
@@ -31,9 +30,18 @@
         <div class="col-md-4">
             <div class="glass text-center">
                 <h5 class="price-title mb-3">📍 環境監測</h5>
-                <h4 id="cityName" class="fw-bold text-dark">Kaohsiung</h4>
+                <div class="btn-group mb-3 w-100 shadow-sm rounded-pill overflow-hidden">
+                    <button class="btn btn-outline-secondary btn-sm btn-city" id="btn-Taipei" onclick="updateWeather('Taipei')">台北</button>
+                    <button class="btn btn-outline-secondary btn-sm btn-city active" id="btn-Kaohsiung" onclick="updateWeather('Kaohsiung')">高雄</button>
+                </div>
+                <h4 id="cityName" class="fw-bold text-dark">高雄市</h4>
                 <h2 class="fw-bold my-2" id="temp" style="font-size: 2.2rem;">--°C</h2>
                 <p id="weatherDesc" class="text-muted small">同步中...</p>
+            </div>
+
+            <div class="glass text-center">
+                <h5 class="price-title mb-3">💰 市場匯率 (ETH/USD)</h5>
+                <div class="price-val" id="ethUsdDisplay">$ --</div>
             </div>
 
             <div class="glass border-info">
@@ -43,21 +51,12 @@
                     <button class="btn btn-link btn-sm text-decoration-none" onclick="addNKUSTtoWallet()">+ 加入錢包</button>
                 </div>
                 <hr>
-                <h6 class="price-title mb-2">🛒 購買高科幣 (1:1000)</h6>
+                <h6 class="price-title mb-2 text-center">🛒 兌換高科幣</h6>
                 <div class="input-group input-group-sm mb-2">
                     <input type="number" id="buyAmount" class="form-control" placeholder="ETH 數量" step="0.01">
                     <span class="input-group-text">ETH</span>
                 </div>
                 <button class="btn btn-success btn-sm w-100 rounded-pill fw-bold" onclick="handleBuyTokens()">立即兌換</button>
-            </div>
-
-            <div class="glass">
-                <h5 class="price-title mb-3">⚠️ 租車須知</h5>
-                <div class="small text-muted">
-                    ● 租車押金：10 NKUST<br>
-                    ● 須先完成授權能力<br>
-                    ● 還車將自動退還押金
-                </div>
             </div>
         </div>
 
@@ -68,7 +67,7 @@
                 <div id="statusBox" class="glass status-box mb-4">
                     <h6 class="text-warning fw-bold mb-2">📋 租借狀態：租借中</h6>
                     <div class="small">起租時間：<span id="statusTime">--</span></div>
-                    <div class="small">鎖定押金：<span id="statusDeposit">10.00</span> NKUST</div>
+                    <div class="small">鎖定押金：10.00 NKUST</div>
                 </div>
 
                 <div class="d-grid gap-3">
@@ -92,22 +91,12 @@
 <script>
     const nkustAddress = "0x6b3f588981532574d636b7146449AD8B0741782B";
     const bikeAddress = "0x91242fD93af744401F8e2C7bAE51Af00a57d79Af";
-    
-    const abi = [
-        "function balanceOf(address) view returns (uint256)",
-        "function approve(address, uint256) returns (bool)",
-        "function allowance(address, address) view returns (uint256)",
-        "function buyToken() public payable",
-        "function rentBike() public",
-        "function returnBike() public",
-        "function rentals(address) public view returns (uint256, uint256, bool)"
-    ];
+    const abi = ["function balanceOf(address) view returns (uint256)", "function approve(address, uint256) returns (bool)", "function allowance(address, address) view returns (uint256)", "function buyToken() public payable", "function rentBike() public", "function returnBike() public", "function rentals(address) public view returns (uint256, uint256, bool)"];
 
     async function init() {
         if (!window.ethereum) return;
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const accounts = await provider.listAccounts();
-        
         if (accounts.length > 0) {
             document.getElementById('walletStatus').innerText = "已連線: " + accounts[0].substring(0, 8);
             const token = new ethers.Contract(nkustAddress, abi, provider);
@@ -115,14 +104,10 @@
             document.getElementById('nkustBalanceDisplay').innerText = parseFloat(ethers.utils.formatUnits(bal, 18)).toFixed(2) + " NKUST";
             
             const allow = await token.allowance(accounts[0], bikeAddress);
-            const rentBtn = document.getElementById('rentBtn');
-            const approveBtn = document.getElementById('approveBtn');
-            
             if (allow.gt(ethers.utils.parseUnits("9", 18))) {
-                rentBtn.disabled = false;
-                approveBtn.innerText = "✓ 授權已完成";
-                approveBtn.classList.replace('btn-outline-info', 'btn-light');
-                approveBtn.disabled = true;
+                document.getElementById('rentBtn').disabled = false;
+                document.getElementById('approveBtn').innerText = "✓ 授權已完成";
+                document.getElementById('approveBtn').disabled = true;
             }
 
             const bike = new ethers.Contract(bikeAddress, abi, provider);
@@ -131,63 +116,61 @@
                 document.getElementById('statusBox').style.display = 'block';
                 document.getElementById('statusTime').innerText = new Date(info[0].toNumber()*1000).toLocaleString();
                 document.getElementById('rentBtn').disabled = true;
-            } else {
-                document.getElementById('statusBox').style.display = 'none';
-            }
+            } else { document.getElementById('statusBox').style.display = 'none'; }
         }
-        updateWeather();
+        updatePrice();
+    }
+
+    async function updateWeather(city) {
+        document.getElementById('btn-Taipei').classList.toggle('active', city === 'Taipei');
+        document.getElementById('btn-Kaohsiung').classList.toggle('active', city === 'Kaohsiung');
+        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
+        const data = await res.json();
+        document.getElementById('cityName').innerText = data.name === "Taipei" ? "台北市" : "高雄市";
+        document.getElementById('temp').innerText = Math.round(data.main.temp) + "°C";
+        document.getElementById('weatherDesc').innerText = data.weather[0].description;
+    }
+
+    async function updatePrice() {
+        const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+        const data = await res.json();
+        document.getElementById('ethUsdDisplay').innerText = "$ " + data.ethereum.usd.toLocaleString();
     }
 
     async function handleBuyTokens() {
         const ethVal = document.getElementById('buyAmount').value;
-        if(!ethVal) return alert("請輸入數量");
         const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
         const token = new ethers.Contract(nkustAddress, abi, signer);
         const tx = await token.buyToken({ value: ethers.utils.parseEther(ethVal) });
-        await tx.wait();
-        init();
+        await tx.wait(); init();
     }
 
     async function handleApprove() {
         const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
         const token = new ethers.Contract(nkustAddress, abi, signer);
         const tx = await token.approve(bikeAddress, ethers.utils.parseUnits("1000", 18));
-        await tx.wait();
-        init();
+        await tx.wait(); init();
     }
 
     async function handleRent() {
-        try {
-            const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
-            const bike = new ethers.Contract(bikeAddress, abi, signer);
-            const tx = await bike.rentBike();
-            await tx.wait();
-            alert("租車成功！");
-            init();
-        } catch(e) { alert("租借失敗，請確認餘額"); }
+        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
+        const bike = new ethers.Contract(bikeAddress, abi, signer);
+        const tx = await bike.rentBike();
+        await tx.wait(); init();
     }
 
     async function handleReturn() {
         const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
         const bike = new ethers.Contract(bikeAddress, abi, signer);
         const tx = await bike.returnBike();
-        await tx.wait();
-        alert("還車成功！");
-        init();
-    }
-
-    async function updateWeather() {
-        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=Kaohsiung&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
-        const data = await res.json();
-        document.getElementById('temp').innerText = Math.round(data.main.temp) + "°C";
-        document.getElementById('weatherDesc').innerText = data.weather[0].description;
+        await tx.wait(); init();
     }
 
     async function addNKUSTtoWallet() {
         await window.ethereum.request({ method: 'wallet_watchAsset', params: { type: 'ERC20', options: { address: nkustAddress, symbol: 'NKUST', decimals: 18 }}});
     }
 
-    window.onload = init;
+    window.onload = () => { init(); updateWeather('Kaohsiung'); };
 </script>
 </body>
 </html>
