@@ -86,37 +86,40 @@
 </div>
         </div>
 
-      <div class="col-md-7">
-    <div class="glass h-100 d-flex flex-column align-items-center justify-content-center">
-        <h4 class="fw-bold mb-5 text-secondary">🚲 單車租賃控制台</h4>
+     <div class="col-md-7">
+    <div class="glass h-100">
+        <h4 class="fw-bold mb-4 text-center text-secondary">
+            <span class="me-2">🚲</span>單車租賃控制台
+        </h4>
         
-        <div class="container-fluid">
-            <div class="row g-3">
-                <div class="col-4">
-                    <button id="approveBtn" class="btn btn-outline-primary w-100 h-100 py-4 d-flex flex-column align-items-center justify-content-center fw-bold" onclick="handleApprove()" style="border-radius: 20px; border-width: 2px;">
-                        <span style="font-size: 1.5rem; mb-2;">✅</span>
-                        <span>授權完成</span>
+        <div class="container-fluid px-0">
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <button id="approveBtn" class="btn btn-outline-primary w-100 py-5 d-flex flex-column align-items-center justify-content-center fw-bold" onclick="handleApprove()" style="border-radius: 25px; border-width: 2px; min-height: 180px;">
+                        <span style="font-size: 2.5rem; margin-bottom: 10px;">✅</span>
+                        <span style="font-size: 1.2rem;">授權已完成</span>
                     </button>
                 </div>
-                
-                <div class="col-4">
-                    <button id="rentBtn" class="btn btn-main w-100 h-100 py-4 d-flex flex-column align-items-center justify-content-center fw-bold text-white" onclick="handleRent()" disabled style="border-radius: 20px; background: #4a90a2;">
-                        <span class="small mb-1">第二步</span>
-                        <span style="font-size: 1.1rem;">支付租還</span>
+                <div class="col-6">
+                    <button id="rentBtn" class="btn btn-main w-100 py-5 d-flex flex-column align-items-center justify-content-center fw-bold text-white" onclick="handleRent()" disabled style="border-radius: 25px; background: #5191a1; min-height: 180px; border: none; box-shadow: 0 4px 12px rgba(81,145,161,0.3);">
+                        <span style="font-size: 1rem; opacity: 0.8; margin-bottom: 5px;">第二步</span>
+                        <span style="font-size: 1.5rem;">支付租還</span>
                     </button>
                 </div>
-                
-                <div class="col-4">
-                    <button id="returnBtn" class="btn btn-outline-danger w-100 h-100 py-4 d-flex flex-column align-items-center justify-content-center fw-bold" onclick="handleReturn()" style="border-radius: 20px; border-width: 2px;">
-                        <span style="font-size: 1.5rem; mb-2;">🏁</span>
-                        <span>即刻歸還</span>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <button id="returnBtn" class="btn btn-outline-danger w-100 py-4 d-flex align-items-center justify-content-center fw-bold" onclick="handleReturn()" style="border-radius: 20px; border-width: 2px; transition: 0.3s;">
+                        <span style="font-size: 1.5rem; margin-right: 15px;">🏁</span>
+                        <span style="font-size: 1.3rem;">即刻歸還單車並退回押金</span>
                     </button>
                 </div>
             </div>
         </div>
 
-        <div id="statusBox" class="mt-5 w-100 text-center p-3 rounded-4" style="background: #fffbeb; border: 1px solid #fcd34d; display: none;">
-            <span class="text-warning fw-bold">● 您目前租借中</span>
+        <div id="statusBox" class="mt-4 w-100 text-center p-3 rounded-4" style="background: #fffbeb; border: 1px solid #fcd34d; display: none;">
+            <span class="text-warning fw-bold">● 您目前正在使用單車</span>
             <span class="text-muted small ms-3">起租：<span id="statusTime">--</span></span>
         </div>
     </div>
