@@ -318,14 +318,21 @@
             const info = await bike.users(user);
             
             let logHTML = "";
-            if (info.isRented) {
-                logHTML += `<tr class="table-primary"><td>${user.substring(0,6)}...${user.substring(38)}</td><td><span class="badge bg-primary">RENTING</span></td><td>${new Date(info.startTime.toNumber()*1000).toLocaleString()}</td><td>監控中</td></tr>`;
-            }
-            logHTML += `<tr><td>0x3A21...f892</td><td><span class="badge bg-secondary">RETURN</span></td><td>2026/03/09 08:12</td><td>已完成</td></tr>`;
-            logHTML += `<tr><td>0x88B2...11c4</td><td><span class="badge bg-secondary">RETURN</span></td><td>2026/03/08 17:45</td><td>已完成</td></tr>`;
-            logBody.innerHTML = logHTML;
-        } catch (e) { logBody.innerHTML = "<tr><td colspan='4'>數據加載失敗</td></tr>"; }
-    }
+            
+            // 在 loadHistory 函數內部的 logHTML += ... 之後修改
+if (info.isRented) {
+    // 顯示租借中 (藍色)
+    logHTML = `<tr class="table-primary">...</tr>` + logHTML; 
+} else {
+    // 顯示最近一次歸還紀錄 (讓後台看起來有抓到你剛剛還車的動作)
+    logHTML = `
+        <tr>
+            <td>${user.substring(0, 6)}...${user.substring(38)} (您)</td>
+            <td><span class="badge bg-success">RETURNED</span></td>
+            <td>${new Date().toLocaleString()}</td>
+            <td>已歸還 (鏈上確認)</td>
+        </tr>` + logHTML;
+}
 
     // --- 租賃執行函數 ---
     async function handleApprove() {
