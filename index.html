@@ -103,37 +103,50 @@
 
                 <div class="mt-5 pt-3 border-top small text-muted text-center">
                  <div class="mt-4 p-4 rounded-4" style="background: #fff5f5; border: 1px dashed #feb2b2;">
+    <div class="mt-4 p-4 rounded-4" style="background: #fff5f5; border: 1px dashed #feb2b2;">
     <h6 class="fw-bold text-danger mb-3">
-        <span class="me-2">💡</span>歸還單車與押金退回說明
+        <span class="me-2">🚲</span>歸還手續與資產結算說明
     </h6>
     
     <div class="small text-secondary">
-        <div class="d-flex mb-2">
-            <div class="me-2">📍</div>
-            <div><strong>定點歸還：</strong> 請確認單車已停放於校園指定停車區域，確保不影響他人通行。</div>
+        <div class="d-flex mb-3">
+            <div class="me-3" style="font-size: 1.2rem;">📍</div>
+            <div>
+                <strong class="text-dark">定點停放確認</strong><br>
+                請將單車安全停放於校園指定區域。系統將於您點擊歸還後，自動將該車位釋放給下一位使用者。
+            </div>
         </div>
-        <div class="d-flex mb-2">
-            <div class="me-2">🛡️</div>
-            <div><strong>智能合約保障：</strong> 點擊歸還後，系統將自動觸發智能合約執行「解除租借」與「退還押金」。</div>
+        
+        <div class="d-flex mb-3">
+            <div class="me-3" style="font-size: 1.2rem;">💳</div>
+            <div>
+                <strong class="text-dark">租金與押金結算</strong><br>
+                系統會自動結算：本次扣除 <span class="badge bg-danger-subtle text-danger">10 NKUST</span> 固定租金，並將預扣的 <span class="badge bg-success-subtle text-success">10 NKUST</span> 押金原路退回。
+            </div>
         </div>
-        <div class="d-flex mb-2">
-            <div class="me-2">💰</div>
-            <div><strong>押金說明：</strong> 原先支付的 <strong>0.1 NKUST</strong> 押金會由合約自動退回您的錢包餘額中。</div>
+        
+        <div class="d-flex mb-3">
+            <div class="me-3" style="font-size: 1.2rem;">⚡</div>
+            <div>
+                <strong class="text-dark">智能合約即時退費</strong><br>
+                無需人工審核！歸還指令一旦經區塊鏈確認，押金會透過「智能合約」立即轉入您的帳戶，請觀察餘額變化。
+            </div>
         </div>
+        
         <div class="d-flex mb-0">
-            <div class="me-2">⏳</div>
-            <div><strong>鏈上確認：</strong> 歸還過程需等待區塊鏈打包確認（約 10-20 秒），請務必看到錢包彈出成功視窗後再離開。</div>
-        </div>
-    </div>
-
-    <div class="mt-3 pt-3 border-top border-danger-subtle" style="font-size: 0.75rem; color: #e53e3e;">
-        ※ 提醒：歸還操作屬於區塊鏈寫入行為，需消耗微量 ETH 作為 Gas 費，請確保錢包餘額充足。
-    </div>
-</div>
+            <div class="me-3" style="font-size: 1.2rem;">🛡️</div>
+            <div>
+                <strong class="text-dark">安全提醒</strong><br>
+                歸還屬於鏈上交互行為，MetaMask 會請求簽署交易（需微量 Gas 費），確認成功後租借狀態才會正式解除。
             </div>
         </div>
     </div>
 
+    <div class="mt-3 pt-3 border-top border-danger-subtle text-center" style="font-size: 0.75rem; color: #e53e3e;">
+        ※ 1 NKUST 恆等於 1 TWD，確保您的消費金額清晰透明。
+    </div>
+</div>
+                     
     <div id="adminPanel">
         <div class="glass border-danger shadow-lg">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -303,13 +316,43 @@
         await tx.wait(); location.reload();
     }
 
-    async function handleBuyTokens() {
-        const val = document.getElementById('buyAmount').value;
-        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
-        const token = new ethers.Contract(nkustAddr, abi, signer);
-        const tx = await token.buyToken({ value: ethers.utils.parseEther(val) });
-        await tx.wait(); init();
+   async function handleBuyTokens() {
+    const amountTwd = document.getElementById('buyAmount').value; // 這是使用者輸入的台幣數量
+    if (!amountTwd || amountTwd <= 0) {
+        alert("請輸入欲購買的數量");
+        return;
     }
+
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const token = new ethers.Contract(nkustAddr, abi, signer);
+
+        // 1. 取得畫面上目前的即時匯率
+        const ethUsdText = document.getElementById('ethUsdDisplay').innerText;
+        const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 1952.34;
+        const usdToTwd = 32.5; 
+
+        // 2. 計算出真正要支付的 ETH 數量
+        // 公式： (台幣金額 / 32.5) / ETH美金價格
+        const ethToPay = ((amountTwd / usdToTwd) / currentEthPrice).toFixed(18); // 保持高精度
+
+        console.log(`準備購買 ${amountTwd} 高科幣，需支付 ${ethToPay} ETH`);
+
+        // 3. 發送交易
+        const tx = await token.buyToken({ 
+            value: ethers.utils.parseEther(ethToPay.toString()) 
+        });
+
+        alert("交易已發送，請等待區塊鏈確認...");
+        await tx.wait();
+        alert("購買成功！高科幣已存入您的錢包");
+        init(); // 刷新餘額
+    } catch (e) {
+        console.error("購買失敗:", e);
+        alert("交易取消或失敗，請檢查錢包餘額。");
+    }
+}
 
     // --- API 輔助 ---
     async function updateWeather(city) {
