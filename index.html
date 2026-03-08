@@ -204,8 +204,14 @@
     }
 }
 
-    window.onload = () => { init(); updateWeather('Kaohsiung'); };
-</script>
+window.onload = () => {
+    init();           // 初始化錢包與合約
+    updateWeather('Kaohsiung'); // 抓取高雄天氣
+    updatePrice();    // 抓取即時匯率
+    
+    // 設定每 60 秒自動更新一次，展示動態數據能力
+    setInterval(updatePrice, 60000); 
+};</script>
 
 </body>
 </html>
