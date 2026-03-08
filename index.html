@@ -178,12 +178,31 @@
     }
 
     async function updatePrice() {
-        try {
-            const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
-            const data = await res.json();
-            document.getElementById('ethUsdDisplay').innerText = "$ " + data.ethereum.usd.toLocaleString();
-        } catch(e) {}
+    const priceDisplay = document.getElementById('ethUsdDisplay');
+    try {
+        // 使用 CoinGecko API 獲取即時 ETH 價格
+        const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd", {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) throw new Error('API 無法連線');
+        
+        const data = await response.json();
+        const price = data.ethereum.usd;
+        
+        // 更新介面並加上綠色閃爍效果（代表即時更新）
+        priceDisplay.innerText = "$ " + price.toLocaleString();
+        priceDisplay.style.color = "#10b981"; 
+        console.log("匯率更新成功:", price);
+        
+    } catch(e) {
+        console.error("匯率抓取失敗，改用備用數據:", e);
+        // 保底機制：萬一學校網路擋 API，至少畫面上要有數字
+        priceDisplay.innerText = "$ 2,245.50 (模擬)";
+        priceDisplay.style.color = "#64748b";
     }
+}
 
     window.onload = () => { init(); updateWeather('Kaohsiung'); };
 </script>
