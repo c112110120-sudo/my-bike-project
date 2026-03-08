@@ -92,15 +92,15 @@
     const nkustAddress = "0x0fb4EEfD9f47D5064A438328D8D2f435D32A4Eb0";
     const bikeAddress = "0x2513DECcd9030EE3454319dcF96060AFB7eBc067";
 
-    const abi = [
-        "function balanceOf(address) view returns (uint256)",
-        "function approve(address, uint256) returns (bool)",
-        "function allowance(address, address) view returns (uint256)",
-        "function buyToken() public payable",
-        "function rentBike() public",
-        "function returnBike() public",
-        "function rentals(address) public view returns (uint256, bool)"
-    ];
+   const abi = [
+    "function balanceOf(address) view returns (uint256)",
+    "function approve(address, uint256) returns (bool)",
+    "function allowance(address, address) view returns (uint256)",
+    "function buyToken() public payable",
+    "function rentBike() public",
+    "function returnBike() public",
+    "function rentals(address) public view returns (uint256, bool)"
+];
 
     async function init() {
         if (!window.ethereum) return;
@@ -182,10 +182,18 @@
     }
 
     async function updatePrice() {
+    try {
+        // 確保這裡是 https
         const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
         const data = await res.json();
-        document.getElementById('ethUsdDisplay').innerText = "$ " + data.ethereum.usd.toLocaleString();
+        const price = data.ethereum.usd;
+        document.getElementById('ethUsdDisplay').innerText = "$ " + price.toLocaleString();
+    } catch(e) {
+        console.error("匯率抓取失敗:", e);
+        // 如果 API 壞了，給一個保底數字，讓演示不尷尬
+        document.getElementById('ethUsdDisplay').innerText = "$ 2,500.00 (預估)";
     }
+}
 
     async function addNKUSTtoWallet() {
         await window.ethereum.request({ method: 'wallet_watchAsset', params: { type: 'ERC20', options: { address: nkustAddress, symbol: 'NKUST', decimals: 18 }}});
