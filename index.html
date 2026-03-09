@@ -324,6 +324,7 @@ async function handleApprove() {
         alert("授權失敗，請查看控制台。");
     }
 }
+        
 
 // 點擊「支付租借」按鈕時觸發
 async function handleRent() {
@@ -446,16 +447,7 @@ async function handleBuyTokens() {
     } catch (err) { alert("交易失敗"); }
 }
 
-async function handleApprove() {
-    try {
-        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
-        const token = new ethers.Contract(nkustAddr, abi, signer);
-        const tx = await token.approve(bikeAddr, ethers.utils.parseUnits("1000", 18));
-        await tx.wait();
-        alert("授權成功！");
-        init();
-    } catch (err) { alert("授權失敗"); }
-}
+
 
 async function handleRent() {
     try {
@@ -753,7 +745,7 @@ async function refreshAdminData() {
             if(document.getElementById('db-temp')) document.getElementById('db-temp').innerText = Math.round(data.main.temp) + "°C";
         } catch(e){}
     }
-
+    
     async function updatePrice() {
         try {
             const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
