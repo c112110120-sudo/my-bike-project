@@ -272,16 +272,38 @@
                 rentBtn.style.background = "linear-gradient(135deg, #0d9488, #0284c7)";
             }
 
-            // 3. 檢查租借狀態
+           // 3. 檢查租借狀態
             const bike = new ethers.Contract(bikeAddr, abi, provider);
             const info = await bike.users(user); 
+            
+            const statusBox = document.getElementById('statusBox');
+            const emptyStatus = document.getElementById('emptyStatus');
+
             if (info.isRented) {
-                document.getElementById('statusBox').style.display = 'block';
+                // 顯示使用中狀態
+                if (statusBox) statusBox.style.display = 'block';
+                if (emptyStatus) emptyStatus.style.display = 'none';
+                
                 document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
+                
                 rentBtn.disabled = true;
                 rentBtn.style.opacity = "0.5";
                 rentBtn.innerText = "支付租還(使用中)";
+            } else {
+                // 顯示未租借狀態
+                if (statusBox) statusBox.style.display = 'none';
+                if (emptyStatus) emptyStatus.style.display = 'block';
             }
+
+            // 4. 重要：啟動數據更新 (放在 init 的最後一行)
+            await updateAdminTable(); // 更新後台
+            await fetchEthPrice();    // 抓取即時匯率與換算
+            await updateWeather('Kaohsiung'); // 預設抓取高雄天氣
+
+        } catch (e) {
+            console.error("Init Error:", e);
+        }
+    }
 
             // 更新後台表格
             await updateAdminTable();
