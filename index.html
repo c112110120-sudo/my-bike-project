@@ -45,9 +45,7 @@
     <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="showAdminLogin()">🔒 管理員模式</button>
 </div>
 
-<div class="container">
-    <h1 class="text-center fw-bold mb-4" style="color: #0369a1;">🚲 SmartBike 租賃系統</h1>
-    
+<div class="container">    
     <div class="container py-5">
     <h1 class="text-center fw-bold mb-5" style="color: #0369a1;">🚲 SmartBike 租賃系統</h1>
     
@@ -113,46 +111,55 @@
             </div>
         </div>
 
-        <div class="col-12 mt-2">
-            <div class="p-4 rounded-4" style="background: #fff5f5; border: 1px dashed #feb2b2;">
-                <h5 class="fw-bold text-danger text-center mb-4">🚲 歸還手續與資產結算說明</h5>
-                <div class="row g-4 text-start">
-                    <div class="col-md-4">
-                        <div class="d-flex align-items-start">
-                            <span class="me-2" style="font-size: 1.2rem;">📍</span>
-                            <div>
-                                <div class="fw-bold text-dark" style="font-size: 1rem;">定點停放確認</div>
-                                <div class="small text-secondary mt-1">請將單車停放於校園指定區域，點擊歸還後自動釋放車位。</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="d-flex align-items-start">
-                            <span class="me-2" style="font-size: 1.2rem;">💳</span>
-                            <div>
-                                <div class="fw-bold text-dark" style="font-size: 1rem;">資產結算</div>
-                                <div class="small text-secondary mt-1">
-                                    扣除 <span class="badge bg-danger-subtle text-danger">10 NKUST</span> 租金，
-                                    退回 <span class="badge bg-success-subtle text-success">10 NKUST</span> 押金。
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="d-flex align-items-start">
-                            <span class="me-2" style="font-size: 1.2rem;">🛡️</span>
-                            <div>
-                                <div class="fw-bold text-dark" style="font-size: 1rem;">即時退費</div>
-                                <div class="small text-secondary mt-1">無需人工審核，押金經區塊鏈確認後將立即匯入錢包。</div>
-                            </div>
+        <div class="col-12 mt-4">
+    <div class="p-4 rounded-4" style="background: #fff5f5; border: 1px dashed #feb2b2;">
+        <h5 class="fw-bold text-danger text-center mb-4">
+            🚲 歸還手續與資產結算說明
+        </h5>
+        
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            
+            <div class="col">
+                <div class="d-flex align-items-start">
+                    <div class="text-center" style="font-size: 1.5rem; width: 40px;">📍</div>
+                    <div class="ps-2">
+                        <div class="fw-bold text-dark" style="font-size: 1.05rem;">定點停放確認</div>
+                        <div class="text-secondary mt-1" style="font-size: 0.9rem; line-height: 1.5;">
+                            請將單車安全停放於校園指定區域。系統將於點擊歸還後，自動將車位釋放給下一位使用者。
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="mt-3 text-center" style="font-size: 0.85rem; color: #e53e3e;">
-                ※ 1 NKUST 恆等於 1 TWD，確保您的消費金額清晰透明。
+
+            <div class="col">
+                <div class="d-flex align-items-start">
+                    <div class="text-center" style="font-size: 1.5rem; width: 40px;">💳</div>
+                    <div class="ps-2">
+                        <div class="fw-bold text-dark" style="font-size: 1.05rem;">租金與押金結算</div>
+                        <div class="text-secondary mt-1" style="font-size: 0.9rem; line-height: 1.5;">
+                            本次扣除 <span class="badge rounded-pill" style="background: #fed7d7; color: #9b2c2c; font-weight: 500;">10 NKUST</span> 固定租金，並將預扣的 <span class="badge rounded-pill" style="background: #c6f6d5; color: #22543d; font-weight: 500;">10 NKUST</span> 押金原路退回。
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <div class="col">
+                <div class="d-flex align-items-start">
+                    <div class="text-center" style="font-size: 1.5rem; width: 40px;">⚡</div>
+                    <div class="ps-2">
+                        <div class="fw-bold text-dark" style="font-size: 1.05rem;">智能合約即時退費</div>
+                        <div class="text-secondary mt-1" style="font-size: 0.9rem; line-height: 1.5;">
+                            無需人工審核！歸還指令經區塊鏈確認後，押金會立即轉入您的帳戶，請觀察餘額變化。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
+    </div>
+
+    <div class="mt-3 text-center" style="font-size: 0.85rem; color: #e53e3e; letter-spacing: 1px;">
+        ※ 1 NKUST 恆等於 1 TWD，確保您的消費金額清晰透明。
     </div>
 </div>
         
