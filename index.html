@@ -553,49 +553,36 @@ async function refreshAdminData() {
                 <tr>
                     <td class="font-monospace small text-muted">${addr.substring(0, 10)}...${addr.substring(38)}</td>
                     <td class="text-center">${statusBadge}</td>
-                    <td class="text-center small">${startTimeDisplay}</td>
+                    <td class="text-center small">${startTimeDisplay || startTime}</td>
                     <td class="text-center small">${settlement}</td>
                 </tr>
             `;
-        }
+        } // 這是 for 迴圈的結束
+
         if (refreshBtn) refreshBtn.innerText = "🔄 刷新鏈上日誌";
         
     } catch (e) {
-        console.error("刷新失敗:", e);
+        console.error("刷新/讀取後台失敗:", e);
         if (refreshBtn) refreshBtn.innerText = "❌ 刷新失敗";
+        alert("無法讀取後台數據，請確認合約地址與網路。");
     }
-}
-            // 3. 將資料插入表格行 (TR)
-            tbody.innerHTML += `
-                <tr>
-                    <td class="small font-monospace text-muted">${addr}</td>
-                    <td class="text-center">${statusBadge}</td>
-                    <td class="text-center small">${startTime}</td>
-                    <td class="text-center small">${settlement}</td>
-                </tr>
-            `;
-        }
-    } catch (err) {
-        console.error("讀取後台失敗:", err);
-        alert("無法讀取後台數據，請確認合約地址與網路。");
-    }
-}
+} // 這是 updateAdminTable 函式的結束
 
-    // --- 工具功能 (計算、氣象、密碼) ---
-   function calculateRealtimeEth() {
-    const amount = document.getElementById('buyAmount').value;
-    const quoteElement = document.getElementById('ethQuote');
-    
-    // 假設你的網頁上有一個顯示 ETH 價格的欄位，ID 是 ethUsdDisplay
-    const ethUsdText = document.getElementById('ethUsdDisplay')?.innerText || "2400";
-    const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 2400;
-    const usdToTwd = 32.5;
+// --- 工具功能 (計算、氣象、密碼) ---
+function calculateRealtimeEth() {
+    const amount = document.getElementById('buyAmount').value;
+    const quoteElement = document.getElementById('ethQuote');
+    
+    // 假設你的網頁上有一個顯示 ETH 價格的欄位，ID 是 ethUsdDisplay
+    const ethUsdText = document.getElementById('ethUsdDisplay')?.innerText || "2400";
+    const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 2400;
+    const usdToTwd = 32.5;
 
-    if (!amount || amount <= 0) {
-        quoteElement.innerText = "請輸入欲購買的高科幣數量";
-        globalEstimatedEth = "0"; // 這裡直接賦值，不要加 let
-        return;
-    }
+    if (!amount || amount <= 0) {
+        if (quoteElement) quoteElement.innerText = "請輸入欲購買的高科幣數量";
+        globalEstimatedEth = "0"; 
+        return;
+    }
 
     // 計算買這些幣需要多少 ETH
     // 注意：toFixed(15) 是為了防止 ethers 噴錯
