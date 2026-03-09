@@ -49,50 +49,57 @@
     <div class="container py-5">
     <h1 class="text-center fw-bold mb-5" style="color: #0369a1;">🚲 SmartBike 租賃系統</h1>
     
-    <div class="glass p-4 mb-4">
-    <div class="d-flex align-items-center mb-3">
-        <span class="fs-4 me-2">📍</span>
-        <h5 class="fw-bold m-0">氣象與匯率</h5>
-    </div>
-
-    <div class="btn-group w-100 mb-3" role="group">
-        <button type="button" class="btn btn-outline-primary btn-sm" onclick="updateWeather('Taipei')">台北</button>
-        <button type="button" class="btn btn-outline-primary btn-sm" onclick="updateWeather('Kaohsiung')">高雄</button>
-    </div>
-
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <span class="text-muted">當前城市：</span>
-        <span id="cityName" class="fw-bold text-primary">高雄市</span>
-        <span id="cityTemp" class="fw-bold text-primary">21°C</span>
-    </div>
-
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <span class="text-muted">ETH 匯率 (美金) ：</span>
-        <span id="ethUsdDisplay" class="fw-bold text-success">$ 2,001.53</span>
-    </div>
-
-    <div class="pt-2 border-top">
-        <div class="d-flex justify-content-between align-items-center">
-            <span class="small text-muted">台幣換算 (參考)：</span>
-            <span id="twdToEthDisplay" class="small fw-bold text-danger">100 TWD ≈ 0.001536 ETH</span>
+    <div class="col-md-3"> <div class="glass p-3 mb-3" style="max-width: 320px; font-size: 0.9rem;">
+        <div class="d-flex align-items-center mb-2">
+            <span class="fs-5 me-2">📍</span>
+            <h6 class="fw-bold m-0">氣象與匯率</h6>
         </div>
-    </div>
-</div>
 
-            <div class="glass border-primary">
-                <h5 class="fw-bold mb-3"><span class="me-2">💳</span>我的錢包資產</h5>
-                <div class="text-center py-2">
-                    <h3 id="nkustBalanceDisplay" class="fw-bold text-primary mb-1">0 NKUST</h3>
-                    <p class="small text-muted mb-3">1 NKUST = 1 TWD (台幣)</p>
-                </div>
-                <div class="input-group mb-2">
-                    <span class="input-group-text bg-white">購買量</span>
-                    <input type="number" id="buyAmount" class="form-control" placeholder="例如: 100" oninput="calculateRealtimeEth()">
-                </div>
-                <div id="ethQuote" class="small text-muted text-center mb-3">請輸入欲購買的高科幣數量</div>
-                <button class="btn btn-success w-100 fw-bold rounded-pill py-2" onclick="handleBuyTokens()">以 ETH 兌換高科幣</button>
+        <div class="btn-group w-100 mb-3" role="group">
+            <button type="button" class="btn btn-outline-primary btn-xs py-1" onclick="updateWeather('Taipei')">台北</button>
+            <button type="button" class="btn btn-outline-primary btn-xs py-1" onclick="updateWeather('Kaohsiung')">高雄</button>
+        </div>
+
+        <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted">當前城市：</span>
+            <span id="cityName" class="fw-bold text-primary">高雄市</span>
+            <span id="cityTemp" class="fw-bold text-primary">21°C</span>
+        </div>
+
+        <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">ETH 匯率：</span>
+            <span id="ethUsdDisplay" class="fw-bold text-success">$ 2,002.39</span>
+        </div>
+
+        <div class="pt-2 border-top" style="font-size: 0.8rem;">
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">100 TWD ≈</span>
+                <span id="twdToEthDisplay" class="fw-bold text-danger">0.001536 ETH</span>
             </div>
         </div>
+    </div>
+
+    <div class="glass p-3" style="max-width: 320px;">
+        <div class="text-center mb-3">
+            <div class="small text-muted mb-1">💳 我的錢包資產</div>
+            <h4 id="nkustBalanceDisplay" class="fw-bold text-primary mb-0">1010 NKUST</h4>
+            <div style="font-size: 0.75rem;" class="text-muted">1 NKUST = 1 TWD</div>
+        </div>
+
+        <div class="input-group input-group-sm mb-2">
+            <span class="input-group-text">購買量</span>
+            <input type="number" id="buyAmount" class="form-control" placeholder="100" oninput="calculateRealtimeEth()">
+        </div>
+        
+        <div id="ethQuote" class="text-center mb-3 text-muted" style="font-size: 0.75rem;">
+            需支付約 0.001536 ETH
+        </div>
+
+        <button class="btn btn-success btn-sm w-100 rounded-pill fw-bold" onclick="handleBuyTokens()">
+            以 ETH 兌換高科幣
+        </button>
+    </div>
+</div>
 
         <div class="col-md-7">
             <div class="glass h-100 d-flex flex-column justify-content-center">
