@@ -627,29 +627,22 @@ async function startApp() {
         }
         
         console.log("SmartBike 系統啟動成功");
+        
+        // 3. 監聽 MetaMask 事件
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', () => location.reload());
+            window.ethereum.on('chainChanged', () => location.reload());
+        }
     } catch (e) {
         console.error("系統啟動失敗:", e);
     }
-} // <--- 這裡才是真正結束 startApp
-
-// 監聽 MetaMask 帳號與網路切換 (獨立在 startApp 外面)
-if (window.ethereum) {
-    window.ethereum.on('accountsChanged', () => {
-        console.log("偵測到帳號切換，正在更新數據...");
-        location.reload(); 
-    });
-
-    window.ethereum.on('chainChanged', () => {
-        location.reload();
-    });
-}
+} // <--- 這是 startApp 的唯一結尾
 
 // 綁定載入事件
 window.addEventListener('load', startApp);
 
 // 設定定時器：每 60 秒自動背景更新匯率
 setInterval(updatePrice, 60000);
-    }
 
 </script>            
 </body>
