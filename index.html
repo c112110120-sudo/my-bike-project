@@ -231,16 +231,67 @@ const bikeAddr = "0xecE2D3BA604410A9E2464BD5c8363B2D2Fb01eE0";
 const abi = [ /* ... 你的 ABI ... */ ];
 
 // --- [2. 初始化函數] ---
-async function init() {
+  async function init() {
     if (!window.ethereum) return;
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const accounts = await provider.send("eth_requestAccounts", []);
         const user = accounts[0];
 
-        // ... (這裡是你原本更新餘額、授權、租借狀態的代碼) ...
+        // 1. 更新餘額
+        const token = new ethers.Contract(nkustAddr, abi, provider);
+        const bal = await token.balanceOf(user);
+        const cleanBal = Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18)));
+        document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
 
-        // ✅ 修正點：將這些 await 全部包在 init 裡面
+        // 2. 檢查授權 (這裡就是你要加的地方！)
+        const allow = await token.allowance(user, bikeAddr);
+        const minRequired = ethers.utils.parseUnits("20", 18);
+        
+        // --- 核心按鈕邏輯區 ---
+        const appBtn = document.getElementById('approveBtn');
+        const rentBtn = document.getElementById('rentBtn');
+
+        if (appBtn && rentBtn) {
+            if (allow.gte(minRequired)) {
+                // 授權完成樣式
+                appBtn.classList.remove('btn-outline-primary');
+                appBtn.classList.add('btn-success', 'text-white');
+                appBtn.disabled = true;
+                if (document.getElementById('approveIcon')) document.getElementById('approveIcon').innerText = "✅";
+                if (document.getElementById('approveText')) document.getElementById('approveText').innerText = "授權已完成";
+                
+                // 啟用租車按鈕
+                rentBtn.disabled = false;
+                rentBtn.style.opacity = "1";
+                rentBtn.style.background = "linear-gradient(135deg, #0d9488, #0284c7)";
+            } else {
+                // 未授權狀態
+                rentBtn.disabled = true;
+                rentBtn.style.opacity = "0.5";
+            }
+        }
+
+        // 3. 檢查租借狀態
+        const bike = new ethers.Contract(bikeAddr, abi, provider);
+        const info = await bike.users(user); 
+        const statusBox = document.getElementById('statusBox');
+        const emptyStatus = document.getElementById('emptyStatus');
+
+        if (info.isRented) {
+            if (statusBox) statusBox.style.display = 'block';
+            if (emptyStatus) emptyStatus.style.display = 'none';
+            document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
+            
+            rentBtn.disabled = true;
+            rentBtn.style.opacity = "0.5";
+            rentBtn.innerText = "支付租還(使用中)";
+        } else {
+            if (statusBox) statusBox.style.display = 'none';
+            if (emptyStatus) emptyStatus.style.display = 'block';
+        }
+
+        // 4. 最後：啟動顯示數據 (天氣與匯率)
         await updateAdminTable();
         await fetchEthPrice(); 
         await updateWeather('Kaohsiung'); 
@@ -249,35 +300,6 @@ async function init() {
         console.error("Init Error:", e);
     }
 }
-
-// --- [3. 獨立功能函數] (不要包在 init 裡面，這樣 HTML 才能點擊) ---
-
-async function fetchEthPrice() {
-    try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
-        const data = await response.json();
-        const ethPrice = data.ethereum.usd;
-        
-        document.getElementById('ethUsdDisplay').innerText = `$ ${ethPrice.toLocaleString()}`;
-        
-        const usdToTwd = 32.5;
-        const ethValue = ((100 / usdToTwd) / ethPrice).toFixed(6);
-        document.getElementById('twdToEthDisplay').innerText = `${ethValue} ETH`;
-        globalEstimatedEth = ethValue; 
-    } catch (e) { console.error("匯率失敗", e); }
-}
-
-async function updateWeather(city) {
-    // 如果你沒有 API Key，可以先用寫死的資料 Demo，避免報錯卡住
-    document.getElementById('cityName').innerText = city === 'Taipei' ? '台北市' : '高雄市';
-    document.getElementById('cityTemp').innerText = city === 'Taipei' ? '18°C' : '22°C';
-    console.log(`已手動更新 ${city} 天氣 (Demo 模式)`);
-}
-
-// --- [4. 啟動計時器與載入事件] ---
-window.addEventListener('load', init);
-setInterval(fetchEthPrice, 60000);
-
     
             // 更新後台表格
             await updateAdminTable();
@@ -528,6 +550,8 @@ if (window.ethereum) {
         location.reload();
     });
 }
+// 或者使用監聽器（更推薦）
+window.addEventListener('load', init);
 </script>
                         
 </body>
