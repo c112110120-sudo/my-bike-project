@@ -375,27 +375,36 @@ async function handleApprove() {
         await tx.wait(); location.reload();
     }
 
-    async function handleBuyTokens() {
+   async function handleBuyTokens() {
     const amount = document.getElementById('buyAmount').value;
     if (!amount || amount <= 0) return alert("請輸入有效的購買數量");
 
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
+        
+        // 確保這裡使用的是包含 buyTokens 的合約實例
         const tokenContract = new ethers.Contract(nkustAddr, abi, signer);
 
-        // 假設 100 NKUST = 0.01 ETH (請根據你的合約比例調整)
-        // 這裡必須轉換成 Wei
-        const ethValue = ethers.utils.parseEther((amount * 0.0001).toString()); 
+        // 匯率計算：假設 1 NKUST = 0.0001 ETH
+        // 使用 fixed(6) 避免 JavaScript 產生科學記號 (e-7) 導致 parseEther 報錯
+        const ethNeeded = (parseFloat(amount) * 0.0001).toFixed(6);
+        const ethValue = ethers.utils.parseEther(ethNeeded); 
 
-        const tx = await tokenContract.buyTokens({ value: ethValue });
-        await tx.wait();
+        console.log(`準備購買 ${amount} NKUST，需支付 ${ethNeeded} ETH`);
+
+        const tx = await tokenContract.buyTokens({ 
+            value: ethValue,
+            gasLimit: 100000 // 加入 Gas Limit 避免某些測試網預估錯誤
+        });
         
+        await tx.wait();
         alert("購買成功！");
-        location.reload(); // 強制刷新的目的是讓 init() 重新抓取正確的 1100 數字
+        location.reload(); 
     } catch (err) {
-        console.error("買幣失敗:", err);
-        alert("交易失敗，請檢查錢包餘額或網路狀態");
+        console.error("買幣詳細錯誤:", err);
+        // 如果錯誤訊息包含 "is not a function"，代表 ABI 沒寫進 buyTokens
+        alert("購買失敗！請檢查錢包餘額或確認合約是否支援 buyTokens 函數");
     }
 }
 
