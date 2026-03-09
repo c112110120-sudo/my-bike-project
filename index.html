@@ -224,14 +224,24 @@
 </div>
 
 <script>
-    // --- [1. 全域變數定義] ---
+  // --- [1. 全域變數定義] ---
 let globalEstimatedEth = "0";
+const ADMIN_PASSWORD = "123"; // 👈 請設定你的管理員密碼
 const nkustAddr = "0x06830407ECE8DF4F534ab9191112C7286aF50156";
 const bikeAddr = "0xecE2D3BA604410A9E2464BD5c8363B2D2Fb01eE0";
-const abi = [ /* ... 你的 ABI ... */ ];
+const abi = [ 
+    "function balanceOf(address) view returns (uint256)",
+    "function allowance(address, address) view returns (uint256)",
+    "function approve(address, uint256) returns (bool)",
+    "function buyTokens(uint256) payable",
+    "function rent()",
+    "function returnBike()",
+    "function users(address) view returns (bool isRented, uint256 startTime)",
+    "function getAllUsers() view returns (address[])"
+];
 
 // --- [2. 初始化函數] ---
-  async function init() {
+async function init() {
     if (!window.ethereum) return;
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -244,31 +254,22 @@ const abi = [ /* ... 你的 ABI ... */ ];
         const cleanBal = Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18)));
         document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
 
-        // 2. 檢查授權 (這裡就是你要加的地方！)
+        // 2. 檢查授權
         const allow = await token.allowance(user, bikeAddr);
         const minRequired = ethers.utils.parseUnits("20", 18);
-        
-        // --- 核心按鈕邏輯區 ---
         const appBtn = document.getElementById('approveBtn');
         const rentBtn = document.getElementById('rentBtn');
 
         if (appBtn && rentBtn) {
             if (allow.gte(minRequired)) {
-                // 授權完成樣式
                 appBtn.classList.remove('btn-outline-primary');
                 appBtn.classList.add('btn-success', 'text-white');
                 appBtn.disabled = true;
-                if (document.getElementById('approveIcon')) document.getElementById('approveIcon').innerText = "✅";
-                if (document.getElementById('approveText')) document.getElementById('approveText').innerText = "授權已完成";
-                
-                // 啟用租車按鈕
+                document.getElementById('approveIcon').innerText = "✅";
+                document.getElementById('approveText').innerText = "授權已完成";
                 rentBtn.disabled = false;
                 rentBtn.style.opacity = "1";
                 rentBtn.style.background = "linear-gradient(135deg, #0d9488, #0284c7)";
-            } else {
-                // 未授權狀態
-                rentBtn.disabled = true;
-                rentBtn.style.opacity = "0.5";
             }
         }
 
@@ -279,20 +280,18 @@ const abi = [ /* ... 你的 ABI ... */ ];
         const emptyStatus = document.getElementById('emptyStatus');
 
         if (info.isRented) {
-            if (statusBox) statusBox.style.display = 'block';
-            if (emptyStatus) emptyStatus.style.display = 'none';
+            statusBox.style.display = 'block';
+            emptyStatus.style.display = 'none';
             document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
-            
             rentBtn.disabled = true;
             rentBtn.style.opacity = "0.5";
             rentBtn.innerText = "支付租還(使用中)";
         } else {
-            if (statusBox) statusBox.style.display = 'none';
-            if (emptyStatus) emptyStatus.style.display = 'block';
+            statusBox.style.display = 'none';
+            emptyStatus.style.display = 'flex';
         }
 
-        // 4. 最後：啟動顯示數據 (天氣與匯率)
-        await updateAdminTable();
+        // 4. 數據啟動
         await fetchEthPrice(); 
         await updateWeather('Kaohsiung'); 
 
@@ -300,6 +299,114 @@ const abi = [ /* ... 你的 ABI ... */ ];
         console.error("Init Error:", e);
     }
 }
+
+// --- [3. 功能函數] ---
+async function fetchEthPrice() {
+    try {
+        const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+        const data = await res.json();
+        const price = data.ethereum.usd;
+        document.getElementById('ethUsdDisplay').innerText = "$ " + price.toLocaleString();
+        
+        const usdToTwd = 32.5;
+        const ethValue = ((100 / usdToTwd) / price).toFixed(6);
+        document.getElementById('twdToEthDisplay').innerText = `${ethValue} ETH`;
+    } catch(e){ console.error("匯率更新失敗"); }
+}
+
+async function updateWeather(city) {
+    try {
+        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
+        const data = await res.json();
+        document.getElementById('cityName').innerText = (city === 'Taipei' ? "台北市" : "高雄市");
+        document.getElementById('cityTemp').innerText = Math.round(data.main.temp) + "°C";
+    } catch(e){ console.error("天氣更新失敗"); }
+}
+
+function calculateRealtimeEth() {
+    const amount = document.getElementById('buyAmount').value;
+    const quoteElement = document.getElementById('ethQuote');
+    const ethUsdText = document.getElementById('ethUsdDisplay').innerText;
+    const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 2400;
+    const usdToTwd = 32.5;
+
+    if (!amount || amount <= 0) {
+        quoteElement.innerText = "請輸入欲購買的高科幣數量";
+        globalEstimatedEth = "0";
+        return;
+    }
+    globalEstimatedEth = ((parseFloat(amount) / usdToTwd) / currentEthPrice).toFixed(15);
+    quoteElement.innerHTML = `需支付約 <span class="text-danger fw-bold">${globalEstimatedEth} ETH</span>`;
+}
+
+async function handleBuyTokens() {
+    const amount = document.getElementById('buyAmount').value;
+    if (globalEstimatedEth === "0") return alert("請輸入數量");
+    try {
+        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
+        const tokenContract = new ethers.Contract(nkustAddr, abi, signer);
+        const tx = await tokenContract.buyTokens(amount, { value: ethers.utils.parseEther(globalEstimatedEth) });
+        await tx.wait();
+        location.reload(); 
+    } catch (err) { alert("交易失敗"); }
+}
+
+async function handleApprove() {
+    try {
+        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
+        const token = new ethers.Contract(nkustAddr, abi, signer);
+        const tx = await token.approve(bikeAddr, ethers.utils.parseUnits("1000", 18));
+        await tx.wait();
+        alert("授權成功！");
+        init();
+    } catch (err) { alert("授權失敗"); }
+}
+
+async function handleRent() {
+    try {
+        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
+        const bike = new ethers.Contract(bikeAddr, abi, signer);
+        const tx = await bike.rent();
+        await tx.wait(); 
+        location.reload();
+    } catch (e) { alert("租車失敗，請確認餘額"); }
+}
+
+// --- [4. 管理員功能] ---
+function showAdminLogin() { document.getElementById('adminModal').style.display = 'flex'; }
+function closeAdminLogin() { document.getElementById('adminModal').style.display = 'none'; }
+function checkPassword() {
+    if (document.getElementById('adminPwd').value === ADMIN_PASSWORD) {
+        document.getElementById('adminModal').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        updateAdminTable();
+    } else { alert("密碼錯誤！"); }
+}
+
+async function updateAdminTable() {
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const bike = new ethers.Contract(bikeAddr, abi, provider);
+        const allAddresses = await bike.getAllUsers();
+        const tableBody = document.getElementById('adminTableBody');
+        tableBody.innerHTML = "";
+
+        for (let addr of allAddresses) {
+            const info = await bike.users(addr);
+            const statusBadge = info.isRented ? '<span class="badge bg-warning text-dark">租用中</span>' : '<span class="badge bg-secondary">已歸還</span>';
+            const startTimeStr = info.startTime > 0 ? new Date(info.startTime.toNumber() * 1000).toLocaleString() : "-";
+            tableBody.innerHTML += `<tr><td class="small text-muted">${addr}</td><td>${statusBadge}</td><td class="small">${startTimeStr}</td><td class="small">已同步</td></tr>`;
+        }
+    } catch (err) { console.error("後台更新失敗"); }
+}
+
+// --- [5. 事件監聽] ---
+if (window.ethereum) {
+    window.ethereum.on('accountsChanged', () => location.reload());
+    window.ethereum.on('chainChanged', () => location.reload());
+}
+window.addEventListener('load', init);
+setInterval(fetchEthPrice, 60000);
     
             // 更新後台表格
             await updateAdminTable();
