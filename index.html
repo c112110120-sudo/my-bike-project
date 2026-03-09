@@ -88,41 +88,39 @@
 
      <div class="col-md-7">
     <div class="glass h-100">
-        <h4 class="fw-bold mb-4 text-center text-secondary">
-            <span class="me-2">🚲</span>單車租賃控制台
-        </h4>
-        
-        <div class="container-fluid px-0">
-            <div class="row g-3 mb-3">
-                <div class="col-6">
-    <button id="approveBtn" class="btn btn-outline-secondary w-100 py-5 d-flex flex-column align-items-center justify-content-center fw-bold" onclick="handleApprove()" style="border-radius: 25px; border-width: 2px; min-height: 180px;">
-        <span id="approveIcon" style="font-size: 2.5rem; margin-bottom: 10px;">🔓</span>
-        <span id="approveText" style="font-size: 1.2rem;">第一步：點擊授權</span>
-    </button>
-</div>
-                </div>
-                <div class="col-6">
-                    <button id="rentBtn" class="btn btn-main w-100 py-5 d-flex flex-column align-items-center justify-content-center fw-bold text-white" onclick="handleRent()" disabled style="border-radius: 25px; background: #5191a1; min-height: 180px; border: none; box-shadow: 0 4px 12px rgba(81,145,161,0.3);">
-                        <span style="font-size: 1rem; opacity: 0.8; margin-bottom: 5px;">第二步</span>
-                        <span style="font-size: 1.5rem;">支付租還</span>
-                    </button>
-                </div>
+    <h4 class="fw-bold mb-4 text-center text-secondary">
+        <span class="me-2">🚲</span>單車租賃控制台
+    </h4>
+    
+    <div class="container-fluid px-0">
+        <div class="row g-3 mb-3">
+            <div class="col-6">
+                <button id="approveBtn" class="btn btn-outline-primary w-100 py-4 d-flex flex-column align-items-center justify-content-center fw-bold" onclick="handleApprove()" style="border-radius: 20px; min-height: 160px; border-width: 2px;">
+                    <span id="approveIcon" style="font-size: 2rem; margin-bottom: 8px;">🔓</span>
+                    <span id="approveText">第一步：點擊授權</span>
+                </button>
             </div>
-
-            <div class="row">
-                <div class="col-12">
-                    <button id="returnBtn" class="btn btn-outline-danger w-100 py-4 d-flex align-items-center justify-content-center fw-bold" onclick="handleReturn()" style="border-radius: 20px; border-width: 2px; transition: 0.3s;">
-                        <span style="font-size: 1.5rem; margin-right: 15px;">🏁</span>
-                        <span style="font-size: 1.3rem;">即刻歸還單車並退回押金</span>
-                    </button>
-                </div>
+            <div class="col-6">
+                <button id="rentBtn" class="btn btn-secondary w-100 py-4 d-flex flex-column align-items-center justify-content-center fw-bold text-white" onclick="handleRent()" disabled style="border-radius: 20px; min-height: 160px; border: none; opacity: 0.5;">
+                    <span style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 5px;">第二步</span>
+                    <span style="font-size: 1.2rem;">支付租借</span>
+                </button>
             </div>
         </div>
 
-        <div id="statusBox" class="mt-4 w-100 text-center p-3 rounded-4" style="background: #fffbeb; border: 1px solid #fcd34d; display: none;">
-            <span class="text-warning fw-bold">● 您目前正在使用單車</span>
-            <span class="text-muted small ms-3">起租：<span id="statusTime">--</span></span>
+        <div class="row">
+            <div class="col-12">
+                <button id="returnBtn" class="btn btn-outline-danger w-100 py-3 d-flex align-items-center justify-content-center fw-bold" onclick="handleReturn()" style="border-radius: 15px; border-width: 2px;">
+                    <span style="font-size: 1.2rem; margin-right: 10px;">🏁</span>
+                    <span>即刻歸還單車並退回押金</span>
+                </button>
+            </div>
         </div>
+    </div>
+
+    <div id="statusBox" class="mt-4 w-100 text-center p-3 rounded-4" style="background: #fffbeb; border: 1px solid #fcd34d; display: none;">
+        <span class="text-warning fw-bold">● 您目前正在使用單車</span>
+        <div class="text-muted small">起租：<span id="statusTime">--</span></div>
     </div>
 </div>
         
@@ -262,55 +260,46 @@
         const accounts = await provider.send("eth_requestAccounts", []);
         const user = accounts[0];
 
-        // 1. 取得並格式化餘額 (解決數字亂跳)
+        // 1. 更新餘額
         const token = new ethers.Contract(nkustAddr, abi, provider);
         const bal = await token.balanceOf(user);
-        const formattedBal = ethers.utils.formatUnits(bal, 18); 
-        const cleanBal = Math.floor(parseFloat(formattedBal)); 
-        
-        // 將結果印到網頁上
+        const cleanBal = Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18)));
         document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
 
-        // 2. 檢查授權狀態 (是否大於等於 20 顆)
+        // 2. 檢查授權 (關鍵修正處)
         const allow = await token.allowance(user, bikeAddr);
-        const minAllowance = ethers.utils.parseUnits("20", 18);
+        const minRequired = ethers.utils.parseUnits("20", 18);
+        
+        const appBtn = document.getElementById('approveBtn');
+        const rentBtn = document.getElementById('rentBtn');
 
-       const appBtn = document.getElementById('approveBtn');
-const rentBtn = document.getElementById('rentBtn');
+        if (allow.gte(minRequired)) {
+            // ✅ 授權足夠：變更按鈕樣式
+            appBtn.classList.remove('btn-outline-primary');
+            appBtn.classList.add('btn-success', 'text-white'); // 變成綠色
+            appBtn.disabled = true;
+            document.getElementById('approveIcon').innerText = "✅";
+            document.getElementById('approveText').innerText = "授權已完成";
+            
+            // ✅ 解鎖第二步租借按鈕
+            rentBtn.disabled = false;
+            rentBtn.classList.remove('btn-secondary');
+            rentBtn.classList.add('btn-main'); // 變回你原本定義的深藍/青色
+            rentBtn.style.opacity = "1";
+            rentBtn.style.background = "linear-gradient(135deg, #0d9488, #0284c7)";
+        }
 
-if (allow.gte(minRequired)) {
-    // ✅ 如果授權足夠：變綠色、打勾、禁用按鈕防止重複點擊
-    appBtn.classList.replace('btn-outline-secondary', 'btn-success');
-    appBtn.classList.remove('btn-outline-primary'); // 確保移除舊樣式
-    appBtn.disabled = true;
-    document.getElementById('approveIcon').innerText = "✅";
-    document.getElementById('approveText').innerText = "授權已完成";
-    
-    // 開啟第二步的租借按鈕
-    rentBtn.disabled = false;
-    rentBtn.style.opacity = "1";
-} else {
-    // ❌ 如果授權不足：維持原樣或變回未完成
-    appBtn.classList.add('btn-outline-primary'); 
-    appBtn.disabled = false;
-    document.getElementById('approveIcon').innerText = "🔓";
-    document.getElementById('approveText').innerText = "第一步：點擊授權";
-    
-    // 鎖定第二步按鈕
-    rentBtn.disabled = true;
-    rentBtn.style.opacity = "0.5";
-}
-
-        // 3. 檢查目前是否正在租車中
+        // 3. 檢查租借狀態
         const bike = new ethers.Contract(bikeAddr, abi, provider);
         const info = await bike.users(user); 
         if (info.isRented) {
             document.getElementById('statusBox').style.display = 'block';
             document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
-            document.getElementById('rentBtn').disabled = true; // 租借中不能重複支付
+            rentBtn.disabled = true; // 租借中不能重複點支付
+            rentBtn.style.opacity = "0.5";
         }
-    } catch (error) {
-        console.error("Initialization failed:", error);
+    } catch (e) {
+        console.error("Init Error:", e);
     }
 }
 
