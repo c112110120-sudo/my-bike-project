@@ -315,28 +315,37 @@
 
     // --- 買幣功能 (修正版) ---
     async function handleBuyTokens() {
-        const amount = document.getElementById('buyAmount').value;
-        if (!amount || amount <= 0) return alert("請輸入金額");
+    const amount = document.getElementById('buyAmount').value;
+    if (!amount || amount <= 0) return alert("請輸入有效的購買數量");
 
-        try {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const signer = provider.getSigner();
-            const tokenContract = new ethers.Contract(nkustAddr, abi, signer);
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const tokenContract = new ethers.Contract(nkustAddr, abi, signer);
 
-            // 1 NKUST = 0.0001 ETH
-            const ethNeeded = (Number(amount) * 0.0001).toFixed(6);
-            const ethValue = ethers.utils.parseEther(ethNeeded.toString()); 
+        const ethUsdText = document.getElementById('ethUsdDisplay').innerText;
+        const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 2000;
+        const usdToTwd = 32.5;
 
-            const tx = await tokenContract.buyTokens({ value: ethValue, gasLimit: 120000 });
-            alert("交易已送出！等待鏈上確認...");
-            await tx.wait();
-            alert("購買成功！");
-            location.reload();
-        } catch (err) {
-            console.error(err);
-            alert("買幣失敗：請確認錢包有足夠 ETH 並切換至 Sepolia 網路");
-        }
+        // 計算精確 ETH 金額
+        const ethNeeded = ((parseFloat(amount) / usdToTwd) / currentEthPrice).toFixed(6);
+        const ethValue = ethers.utils.parseEther(ethNeeded); 
+
+        console.log(`[交易發送] 購買:${amount} NKUST, 支付:${ethNeeded} ETH`);
+
+        const tx = await tokenContract.buyTokens({ 
+            value: ethValue,
+            gasLimit: 150000 
+        });
+        
+        await tx.wait();
+        alert("購買成功！1 顆高科幣等於 1 台幣。");
+        location.reload(); 
+    } catch (err) {
+        console.error("買幣失敗:", err);
+        alert("交易失敗，請檢查餘額或網路狀態。");
     }
+}
     // ... 原有的 handleBuyTokens 函數 ...
 
 // --- 在這裡插入第二個部分：後台數據讀取函數 ---
@@ -420,13 +429,25 @@ async function refreshAdminData() {
     }
 
     // --- 工具功能 (計算、氣象、密碼) ---
-    function calculateRealtimeEth() {
-        const amount = document.getElementById('buyAmount').value;
-        const quoteElement = document.getElementById('ethQuote');
-        if (!amount) { quoteElement.innerText = "請輸入欲購買的高科幣數量"; return; }
-        const estimatedEth = (amount * 0.0001).toFixed(6);
-        quoteElement.innerHTML = `需支付約 <span class="text-danger fw-bold">${estimatedEth} ETH</span>`;
+   function calculateRealtimeEth() {
+    const amount = document.getElementById('buyAmount').value;
+    const quoteElement = document.getElementById('ethQuote');
+    const ethUsdText = document.getElementById('ethUsdDisplay').innerText;
+    
+    // 取得即時 ETH 美金價，若抓不到則預設 2000
+    const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 2000;
+    const usdToTwd = 32.5; // 台幣匯率基準
+
+    if (!amount || amount <= 0) {
+        quoteElement.innerText = "請輸入欲購買的高科幣數量";
+        return;
     }
+
+    // 公式：(欲買數量 / 32.5) / ETH美金價格 = 應付 ETH
+    const estimatedEth = ((parseFloat(amount) / usdToTwd) / currentEthPrice).toFixed(6);
+    
+    quoteElement.innerHTML = `即時匯率 (1:1 TWD)：需支付約 <span class="text-danger fw-bold">${estimatedEth} ETH</span>`;
+}
 
     function showAdminLogin() { document.getElementById('adminModal').style.display = 'flex'; }
     function closeAdminLogin() { document.getElementById('adminModal').style.display = 'none'; }
