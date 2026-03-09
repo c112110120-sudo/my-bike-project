@@ -212,17 +212,17 @@
 
 <script>
     const nkustAddr = "0x692D9FC10D3D74327A4B879936f265c9208273a4";
-    const bikeAddr = "0x759e101BC51af51a73b17fbCb7d6598D2429ee22";
+    const bikeAddr = "0x35aA0156CDF5fd769f2bc69974C54ffd940F2755";
     const ADMIN_PASSWORD = "nkust";
     
     const abi = [
-   
     "function balanceOf(address owner) view returns (uint256)",
     "function approve(address spender, uint256 amount) returns (bool)",
     "function allowance(address owner, address spender) view returns (uint256)",
-    "function buyTokens() payable", // 確保這裡有名稱對齊
+    "function buyTokens() payable",
     "function rent()", 
     "function returnBike()",
+    "function getAllUsers() view returns (address[])",
     "function users(address) view returns (uint256 startTime, bool isRented)"
 ];
 
@@ -240,7 +240,7 @@
         const estimatedEth = ((amount / usdToTwd) / currentEthPrice).toFixed(6);
         quoteElement.innerHTML = `需支付約 <span class="text-danger fw-bold">${estimatedEth} ETH</span>`;
     }
-
+    
     async function init() {
     if (!window.ethereum) return;
     try {
@@ -254,7 +254,7 @@
         const cleanBal = Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18)));
         document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
 
-        // 2. 檢查授權 (關鍵修正處)
+        // 2. 檢查授權
         const allow = await token.allowance(user, bikeAddr);
         const minRequired = ethers.utils.parseUnits("20", 18);
         
@@ -262,17 +262,15 @@
         const rentBtn = document.getElementById('rentBtn');
 
         if (allow.gte(minRequired)) {
-            // ✅ 授權足夠：變更按鈕樣式
             appBtn.classList.remove('btn-outline-primary');
-            appBtn.classList.add('btn-success', 'text-white'); // 變成綠色
+            appBtn.classList.add('btn-success', 'text-white');
             appBtn.disabled = true;
             document.getElementById('approveIcon').innerText = "✅";
             document.getElementById('approveText').innerText = "授權已完成";
             
-            // ✅ 解鎖第二步租借按鈕
             rentBtn.disabled = false;
             rentBtn.classList.remove('btn-secondary');
-            rentBtn.classList.add('btn-main'); // 變回你原本定義的深藍/青色
+            rentBtn.classList.add('btn-main');
             rentBtn.style.opacity = "1";
             rentBtn.style.background = "linear-gradient(135deg, #0d9488, #0284c7)";
         }
@@ -283,11 +281,51 @@
         if (info.isRented) {
             document.getElementById('statusBox').style.display = 'block';
             document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
-            rentBtn.disabled = true; // 租借中不能重複點支付
+            rentBtn.disabled = true;
             rentBtn.style.opacity = "0.5";
         }
+
+        // --- 核心新增：頁面初始化時自動讀取後台 ---
+        await updateAdminTable();
+
     } catch (e) {
         console.error("Init Error:", e);
+    }
+}
+
+// 將 updateAdminTable 獨立出來，放在 init 的外面
+async function updateAdminTable() {
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const bikeContract = new ethers.Contract(bikeAddr, abi, provider);
+        
+        // 從合約抓取永久清單 (allUsers)
+        const allAddresses = await bikeContract.getAllUsers();
+        const tableBody = document.getElementById('adminTableBody');
+        if (!tableBody) return; 
+
+        tableBody.innerHTML = ""; // 先清空舊資料
+
+        for (let addr of allAddresses) {
+            const info = await bikeContract.users(addr);
+            const statusText = info.isRented ? 
+                '<span class="badge bg-warning text-dark">租用中</span>' : 
+                '<span class="badge bg-secondary">已歸還</span>';
+            
+            // 處理時間戳轉換
+            const timeDisplay = info.isRented ? 
+                new Date(info.startTime.toNumber() * 1000).toLocaleString() : '-';
+                
+            tableBody.innerHTML += `
+                <tr>
+                    <td class="small text-muted">${addr}</td>
+                    <td>${statusText}</td>
+                    <td>${timeDisplay}</td>
+                </tr>
+            `;
+        }
+    } catch (err) {
+        console.error("更新管理後台失敗:", err);
     }
 }
 
@@ -336,7 +374,7 @@
             }
             logBody.innerHTML = logHTML; // 將產生的 HTML 放入表格
         } catch (e) { console.error("History Error:", e); }
-    } // 這裡原本少了一個大括號！
+    } 
 
     // --- 租賃執行函數 ---
 async function handleApprove() {
