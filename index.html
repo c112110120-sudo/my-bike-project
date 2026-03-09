@@ -615,37 +615,36 @@ function calculateRealtimeEth() {
 
 // 建立一個統一的啟動進入點
 // ⚡ 核心：啟動所有功能
+// --- 啟動與監聽 (請確保這段在檔案最末尾) ---
 async function startApp() {
     try {
-        // 1. 優先抓取基礎數據
+        // 1. 抓取氣象與匯率
         await updateWeather('Kaohsiung'); 
         await updatePrice();
         
-        // 2. 執行 Web3 初始化
+        // 2. 初始化合約資料
         if (typeof init === "function") {
             await init(); 
         }
         
         console.log("SmartBike 系統啟動成功");
-        
-        // 3. 監聽 MetaMask 事件
+
+        // 3. MetaMask 監聽
         if (window.ethereum) {
             window.ethereum.on('accountsChanged', () => location.reload());
             window.ethereum.on('chainChanged', () => location.reload());
         }
     } catch (e) {
-        console.error("系統啟動失敗:", e);
+        console.error("啟動失敗:", e);
     }
-} // <--- 這是 startApp 的唯一結尾
+}
 
 // 綁定載入事件
 window.addEventListener('load', startApp);
 
-// 設定定時器：每 60 秒自動背景更新匯率
+// 每分鐘更新匯率
 setInterval(updatePrice, 60000);
-}
-}
-}
+
 </script>            
 </body>
 </html>
