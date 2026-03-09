@@ -640,17 +640,18 @@ if (window.ethereum) {
     });
 
     // 偵測網路切換 (預防切到主網)
-    window.ethereum.on('chainChanged', () => {
-        location.reload();
-    });
-}
+    if (window.ethereum) {
+        window.ethereum.on('chainChanged', () => {
+            location.reload();
+        });
+    }
+} // 這是 startApp 的結束
 
-// ⚡ 核心：只使用一個監聽器來啟動所有功能
+// ⚡ 核心：啟動所有功能
 window.addEventListener('load', startApp);
 
-// 設定定時器：每 60 秒自動背景更新匯率，不需要刷頁面
+// 設定定時器：每 60 秒自動背景更新匯率
 setInterval(updatePrice, 60000);
-
-</script>            
+</script>            
 </body>
-</html> 
+</html>
