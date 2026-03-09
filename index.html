@@ -49,127 +49,81 @@
     <h1 class="text-center fw-bold mb-4" style="color: #0369a1;">🚲 SmartBike 租賃系統</h1>
     
     <div class="row">
-        <div class="col-md-5">
-            <div class="glass">
-                <h5 class="fw-bold mb-3">📍 氣象與匯率</h5>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>當前城市：<b id="cityName">高雄市</b></span>
-                    <span id="temp" class="text-primary fw-bold">--°C</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span>ETH 匯率：</span>
-                    <b id="ethUsdDisplay" class="text-success">$ ----</b>
-                </div>
-                <div class="btn-group w-100 mt-3">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="updateWeather('Taipei')">台北</button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="updateWeather('Kaohsiung')">高雄</button>
-                </div>
+        <div class="row g-4">
+    <div class="col-md-5 d-flex flex-column">
+        <div class="glass mb-4">
+            <h5 class="fw-bold mb-3">📍 氣象與匯率</h5>
             </div>
 
-            <div class="glass border-primary">
-    <h5 class="fw-bold mb-3">💳 我的錢包資產</h5>
-    <div class="text-center">
-        <h3 id="nkustBalanceDisplay" class="fw-bold text-primary mb-1">0.00 NKUST</h3>
-        <p class="small text-muted mb-3">1 NKUST = 1 TWD (台幣)</p>
+        <div class="glass border-primary flex-grow-1">
+            <h5 class="fw-bold mb-3">💳 我的錢包資產</h5>
+            <div class="text-center py-3">
+                <h3 id="nkustBalanceDisplay" class="fw-bold text-primary mb-1">1,002 NKUST</h3>
+                <p class="small text-muted">1 NKUST = 1 TWD (台幣)</p>
+            </div>
+            </div>
     </div>
-    
-    <div class="input-group mb-2">
-        <span class="input-group-text bg-white">購買量</span>
-        <input type="number" id="buyAmount" class="form-control" placeholder="例如: 100" oninput="calculateRealtimeEth()">
+
+    <div class="col-md-7">
+        <div class="glass h-100 d-flex flex-column justify-content-center">
+            <h4 class="fw-bold mb-4 text-center text-secondary">🚲 單車租賃控制台</h4>
+            <div class="row g-3">
+                <div class="col-6">
+                    <button id="approveBtn" class="btn btn-outline-primary w-100 py-4 h-100 fw-bold" style="border-radius: 20px; border-width: 2px;">
+                        <span style="font-size: 1.5rem; display: block;">✅</span> 授權已完成
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button id="rentBtn" class="btn btn-main w-100 py-4 h-100 fw-bold" style="border-radius: 20px;">
+                        <span style="font-size: 0.9rem; opacity: 0.8; display: block;">第二步</span> 支付租還
+                    </button>
+                </div>
+                <div class="col-12 mt-3">
+                    <button id="returnBtn" class="btn btn-outline-danger w-100 py-3 fw-bold" style="border-radius: 15px; border-width: 2px;">
+                        🏁 即刻歸還單車並退回押金
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="ethQuote" class="small text-muted text-center mb-3" style="font-size: 0.8rem;">
-        請輸入欲購買的高科幣數量
+
+    <div class="col-12 mt-4">
+        <div class="p-4 rounded-4" style="background: #fff5f5; border: 1px dashed #feb2b2;">
+            <h5 class="fw-bold text-danger text-center mb-4">🚲 歸還手續與資產結算說明</h5>
+            <div class="row row-cols-1 row-cols-md-3 g-4"> <div class="col">
+                    <div class="d-flex align-items-start">
+                        <span class="me-3" style="font-size: 1.2rem;">📍</span>
+                        <div>
+                            <div class="fw-bold text-dark">定點停放確認</div>
+                            <div class="small text-secondary mt-1">請將單車停放於校園指定區域，點擊後自動釋放車位。</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="d-flex align-items-start">
+                        <span class="me-3" style="font-size: 1.2rem;">💳</span>
+                        <div>
+                            <div class="fw-bold text-dark">資產結算</div>
+                            <div class="small text-secondary mt-1">
+                                扣除 <span class="badge bg-danger-subtle text-danger">10 NKUST</span> 租金，
+                                退回 <span class="badge bg-success-subtle text-success">10 NKUST</span> 押金。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="d-flex align-items-start">
+                        <span class="me-3" style="font-size: 1.2rem;">🛡️</span>
+                        <div>
+                            <div class="fw-bold text-dark">即時退費</div>
+                            <div class="small text-secondary mt-1">無需人工審核，押金經區塊鏈確認後將立即匯入錢包。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <button class="btn btn-success w-100 fw-bold rounded-pill" onclick="handleBuyTokens()">
-        以 ETH 兌換高科幣
-    </button>
 </div>
-        </div>
-
-     <div class="col-md-7">
-    <div class="glass h-100">
-    <h4 class="fw-bold mb-4 text-center text-secondary">
-        <span class="me-2">🚲</span>單車租賃控制台
-    </h4>
-    
-    <div class="container-fluid px-0">
-        <div class="row g-3 mb-3">
-            <div class="col-6">
-                <button id="approveBtn" class="btn btn-outline-primary w-100 py-4 d-flex flex-column align-items-center justify-content-center fw-bold" onclick="handleApprove()" style="border-radius: 20px; min-height: 160px; border-width: 2px;">
-                    <span id="approveIcon" style="font-size: 2rem; margin-bottom: 8px;">🔓</span>
-                    <span id="approveText">第一步：點擊授權</span>
-                </button>
-            </div>
-            <div class="col-6">
-                <button id="rentBtn" class="btn btn-secondary w-100 py-4 d-flex flex-column align-items-center justify-content-center fw-bold text-white" onclick="handleRent()" disabled style="border-radius: 20px; min-height: 160px; border: none; opacity: 0.5;">
-                    <span style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 5px;">第二步</span>
-                    <span style="font-size: 1.2rem;">支付租借</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-12">
-                <button id="returnBtn" class="btn btn-outline-danger w-100 py-3 d-flex align-items-center justify-content-center fw-bold" onclick="handleReturn()" style="border-radius: 15px; border-width: 2px;">
-                    <span style="font-size: 1.2rem; margin-right: 10px;">🏁</span>
-                    <span>即刻歸還單車並退回押金</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="statusBox" class="mt-4 w-100 text-center p-3 rounded-4" style="background: #fffbeb; border: 1px solid #fcd34d; display: none;">
-        <span class="text-warning fw-bold">● 您目前正在使用單車</span>
-        <div class="text-muted small">起租：<span id="statusTime">--</span></div>
-    </div>
-</div>
-        
-        <div class="mt-4 p-4 rounded-4" style="background: #fff5f5; border: 1px dashed #feb2b2;">
-    <h5 class="fw-bold text-danger text-center mb-4">
-        🚲 歸還手續與資產結算說明
-    </h5>
-    
-    <div class="container-fluid px-0">
-        <div class="row mb-4 align-items-start">
-            <div class="col-1 text-center" style="font-size: 1.5rem;">📍</div>
-            <div class="col-11 ps-3">
-                <div class="fw-bold text-dark">定點停放確認</div>
-                <div class="small text-secondary mt-1">
-                    請將單車安全停放於校園指定區域。系統將於您點擊歸還後，自動將該車位釋放給下一位使用者。
-                </div>
-            </div>
-        </div>
-        
-        <div class="row mb-4 align-items-start">
-            <div class="col-1 text-center" style="font-size: 1.5rem;">💳</div>
-            <div class="col-11 ps-3">
-                <div class="fw-bold text-dark">租金與押金結算</div>
-                <div class="small text-secondary mt-1">
-                    系統會自動結算：本次扣除 <span class="badge rounded-pill" style="background: #fed7d7; color: #9b2c2c;">10 NKUST</span> 固定租金，並將預扣的 <span class="badge rounded-pill" style="background: #c6f6d5; color: #22543d;">10 NKUST</span> 押金原路退回。
-                </div>
-            </div>
-        </div>
-        
-        <div class="row mb-4 align-items-start">
-            <div class="col-1 text-center" style="font-size: 1.5rem;">⚡</div>
-            <div class="col-11 ps-3">
-                <div class="fw-bold text-dark">智能合約即時退費</div>
-                <div class="small text-secondary mt-1">
-                    無需人工審核！歸還指令一旦經區塊鏈確認，押金會透過「智能合約」立即轉入您的帳戶，請觀察餘額變化。
-                </div>
-            </div>
-        </div>
-        
-        <div class="row mb-0 align-items-start">
-            <div class="col-1 text-center" style="font-size: 1.5rem;">🛡️</div>
-            <div class="col-11 ps-3">
-                <div class="fw-bold text-dark">安全提醒</div>
-                <div class="small text-secondary mt-1">
-                    歸還屬於鏈上交互行為，MetaMask 會請求簽署交易（需微量 Gas 費），確認成功後租借狀態才會正式解除。
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div class="mt-4 pt-3 border-top border-danger-subtle text-center" style="font-size: 0.85rem; color: #e53e3e; letter-spacing: 1px;">
         ※ 1 NKUST 恆等於 1 TWD，確保您的消費金額清晰透明。
