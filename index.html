@@ -368,33 +368,7 @@ function checkPassword() {
 }
 
 // 抓取所有使用者的租借歷史
-async function updateAdminTable() {
-    try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const bike = new ethers.Contract(bikeAddr, abi, provider);
-        const userAddrs = await bike.getAllUsers();
-        
-        const tbody = document.getElementById('adminTableBody');
-        tbody.innerHTML = ""; // 先清空表格
 
-        for (let addr of userAddrs) {
-            const info = await bike.users(addr);
-            const row = `
-                <tr>
-                    <td class="small">${addr.substring(0, 10)}...${addr.substring(38)}</td>
-                    <td class="text-center">${info.isRented ? '🔴 使用中' : '🟢 已歸還'}</td>
-                    <td class="text-center">${new Date(info.startTime.toNumber() * 1000).toLocaleString()}</td>
-                    <td class="text-center">
-                        <span class="badge ${info.isRented ? 'bg-warning' : 'bg-success'}">已結算</span>
-                    </td>
-                </tr>
-            `;
-            tbody.innerHTML += row;
-        }
-    } catch (e) {
-        console.error("Update Admin Table Error:", e);
-    }
-}
 
 // --- [3. 功能函數] ---
 async function fetchEthPrice() {
@@ -475,25 +449,7 @@ function checkPassword() {
     } else { alert("密碼錯誤！"); }
 }
 
-async function updateAdminTable() {
-    try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const bike = new ethers.Contract(bikeAddr, abi, provider);
-        const allAddresses = await bike.getAllUsers();
-        const tableBody = document.getElementById('adminTableBody');
-        if (!tableBody) return;
-        tableBody.innerHTML = "";
-        for (let addr of allAddresses) {
-            const info = await bike.users(addr);
-            const statusBadge = info.isRented ? '<span class="badge bg-warning text-dark">租用中</span>' : '<span class="badge bg-secondary">已歸還</span>';
-            tableBody.innerHTML += `<tr><td class="small text-muted">${addr}</td><td>${statusBadge}</td><td class="small">${info.startTime > 0 ? new Date(info.startTime.toNumber() * 1000).toLocaleString() : "-"}</td><td class="small">已同步</td></tr>`;
-        }
-    } catch (e) { console.log("後台刷新中..."); }
-}
 
-
-
-    // --- 管理員數據同步 ---
     // --- [管理員數據同步] ---
 async function updateAdminTable() {
     try {
