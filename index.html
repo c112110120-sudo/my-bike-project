@@ -191,20 +191,20 @@
 </div>
 
 <script>
-    const nkustAddr = "0xD5EBC87aA9CE90347e79F634AB0629C821174806";
+    const nkustAddr = "0x06830407ECE8DF4F534ab9191112C7286aF50156"; // 新代幣合約
     const bikeAddr = "0xecE2D3BA604410A9E2464BD5c8363B2D2Fb01eE0";
     const ADMIN_PASSWORD = "nkust";
     
     const abi = [
-        "function balanceOf(address owner) view returns (uint256)",
-        "function approve(address spender, uint256 amount) returns (bool)",
-        "function allowance(address owner, address spender) view returns (uint256)",
-        "function buyTokens() payable",
-        "function rent()", 
-        "function returnBike()",
-        "function getAllUsers() view returns (address[])",
-        "function users(address) view returns (uint256 startTime, bool isRented)"
-    ];
+    "function balanceOf(address owner) view returns (uint256)",
+    "function approve(address spender, uint256 amount) returns (bool)",
+    "function allowance(address owner, address spender) view returns (uint256)",
+    "function buyTokens(uint256 amount) payable", // 這裡一定要有 (uint256 amount)
+    "function rent()", 
+    "function returnBike()",
+    "function getAllUsers() view returns (address[])",
+    "function users(address) view returns (uint256 startTime, bool isRented)"
+];
 
     // --- 初始化與狀態同步 ---
     async function init() {
@@ -314,8 +314,8 @@
 }
 
     // --- 買幣功能 (修正版) ---
-    async function handleBuyTokens() {
-    const amount = document.getElementById('buyAmount').value; // 比如輸入 100
+   async function handleBuyTokens() {
+    const amount = document.getElementById('buyAmount').value; // 使用者要買的顆數 (如: 100)
     if (!amount || amount <= 0) return alert("請輸入數量");
 
     try {
@@ -323,18 +323,28 @@
         const signer = provider.getSigner();
         const tokenContract = new ethers.Contract(nkustAddr, abi, signer);
 
-        // 修正這裡的計算比例：
-        // 如果合約是 msg.value * 10000，那買 100 顆需要 0.01 ETH
-        const ethNeeded = (parseFloat(amount) / 10000).toFixed(6); 
-        const ethValue = ethers.utils.parseEther(ethNeeded);
+        // --- 核心改動：抓取即時換算好的 ETH 數量 ---
+        // globalEstimatedEth 是在 calculateRealtimeEth() 裡算好並顯示在網頁上的那個數字
+        if (!globalEstimatedEth || globalEstimatedEth === "0") {
+            alert("請等待匯率載入...");
+            return;
+        }
 
-        const tx = await tokenContract.buyTokens({ value: ethValue });
+        const ethValue = ethers.utils.parseEther(globalEstimatedEth);
+
+        // --- 呼叫合約：必須傳入 amount 參數 ---
+        // 這裡對應合約的 function buyTokens(uint256 amount)
+        const tx = await tokenContract.buyTokens(amount, { 
+            value: ethValue 
+        });
+
         await tx.wait();
         
-        alert(`成功購買 ${amount} NKUST！`);
+        alert(`成功以即時匯率購買 ${amount} NKUST！`);
         location.reload(); 
     } catch (err) {
-        console.error(err);
+        console.error("買幣過程發生錯誤:", err);
+        alert("交易失敗，請檢查 MetaMask 訊息或餘額。");
     }
 }
     // ... 原有的 handleBuyTokens 函數 ...
