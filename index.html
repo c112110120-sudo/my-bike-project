@@ -191,6 +191,7 @@
 </div>
 
 <script>
+    let globalEstimatedEth = "0";
     const nkustAddr = "0x06830407ECE8DF4F534ab9191112C7286aF50156"; // 新代幣合約
     const bikeAddr = "0xecE2D3BA604410A9E2464BD5c8363B2D2Fb01eE0";
     const ADMIN_PASSWORD = "nkust";
@@ -315,7 +316,7 @@
 
     // --- 買幣功能 (修正版) ---
    async function handleBuyTokens() {
-    const amount = document.getElementById('buyAmount').value; // 使用者要買的顆數 (如: 100)
+    const amount = document.getElementById('buyAmount').value;
     if (!amount || amount <= 0) return alert("請輸入數量");
 
     try {
@@ -323,28 +324,24 @@
         const signer = provider.getSigner();
         const tokenContract = new ethers.Contract(nkustAddr, abi, signer);
 
-        // --- 核心改動：抓取即時換算好的 ETH 數量 ---
-        // globalEstimatedEth 是在 calculateRealtimeEth() 裡算好並顯示在網頁上的那個數字
-        if (!globalEstimatedEth || globalEstimatedEth === "0") {
-            alert("請等待匯率載入...");
-            return;
+        // 現在這行不會報 ReferenceError 了
+        if (globalEstimatedEth === "0") {
+            return alert("匯率尚未載入，請稍候");
         }
 
         const ethValue = ethers.utils.parseEther(globalEstimatedEth);
 
-        // --- 呼叫合約：必須傳入 amount 參數 ---
-        // 這裡對應合約的 function buyTokens(uint256 amount)
+        // 傳入數量 (amount) 並附加 ETH (value)
         const tx = await tokenContract.buyTokens(amount, { 
             value: ethValue 
         });
 
         await tx.wait();
-        
-        alert(`成功以即時匯率購買 ${amount} NKUST！`);
+        alert(`成功購買 ${amount} NKUST！`);
         location.reload(); 
     } catch (err) {
         console.error("買幣過程發生錯誤:", err);
-        alert("交易失敗，請檢查 MetaMask 訊息或餘額。");
+        alert("交易失敗，請檢查主控台訊息。");
     }
 }
     // ... 原有的 handleBuyTokens 函數 ...
@@ -433,21 +430,23 @@ async function refreshAdminData() {
    function calculateRealtimeEth() {
     const amount = document.getElementById('buyAmount').value;
     const quoteElement = document.getElementById('ethQuote');
-    const ethUsdText = document.getElementById('ethUsdDisplay').innerText;
     
-    // 取得即時 ETH 美金價，若抓不到則預設 2000
-    const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 2000;
-    const usdToTwd = 32.5; // 台幣匯率基準
+    // 假設你的網頁上有一個顯示 ETH 價格的欄位，ID 是 ethUsdDisplay
+    const ethUsdText = document.getElementById('ethUsdDisplay')?.innerText || "2400";
+    const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 2400;
+    const usdToTwd = 32.5;
 
     if (!amount || amount <= 0) {
         quoteElement.innerText = "請輸入欲購買的高科幣數量";
+        globalEstimatedEth = "0"; // 這裡直接賦值，不要加 let
         return;
     }
 
-    // 公式：(欲買數量 / 32.5) / ETH美金價格 = 應付 ETH
-    const estimatedEth = ((parseFloat(amount) / usdToTwd) / currentEthPrice).toFixed(6);
+    // 計算買這些幣需要多少 ETH
+    // 注意：toFixed(15) 是為了防止 ethers 噴錯
+    globalEstimatedEth = ((parseFloat(amount) / usdToTwd) / currentEthPrice).toFixed(15);
     
-    quoteElement.innerHTML = `即時匯率 (1:1 TWD)：需支付約 <span class="text-danger fw-bold">${estimatedEth} ETH</span>`;
+    quoteElement.innerHTML = `即時匯率換算：需支付約 <span class="text-danger fw-bold">${globalEstimatedEth} ETH</span>`;
 }
 
     function showAdminLogin() { document.getElementById('adminModal').style.display = 'flex'; }
