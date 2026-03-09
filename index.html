@@ -88,14 +88,14 @@
                 <div class="row g-3 px-3">
                     <div class="col-6">
                         <button id="approveBtn" class="btn btn-outline-primary w-100 py-5 d-flex flex-column align-items-center justify-content-center fw-bold" onclick="handleApprove()" style="border-radius: 20px; border-width: 2px; min-height: 160px;">
-                            <span id="approveIcon" style="font-size: 2rem; margin-bottom: 5px;">✅</span>
-                            <span id="approveText">授權已完成</span>
-                        </button>
-                    </div>
+                        <span id="approveIcon" style="font-size: 2rem; margin-bottom: 5px;">🔓</span>
+                        <span id="approveText">第一步：點擊授權</span>
+                    </button>
+                </div>
                     <div class="col-6">
                         <button id="rentBtn" class="btn btn-main w-100 py-5 d-flex flex-column align-items-center justify-content-center fw-bold text-white" onclick="handleRent()" disabled style="border-radius: 20px; background: #0081a7; min-height: 160px; border: none;">
                             <span style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 5px;">第二步</span>
-                            <span style="font-size: 1.2rem;">支付租還</span>
+                            <span style="font-size: 1.2rem;">點擊開始租車</span>
                         </button>
                     </div>
                     <div class="col-12 mt-3">
@@ -256,24 +256,23 @@
 
         // 2. 檢查授權
         const allow = await token.allowance(user, bikeAddr);
-        const minRequired = ethers.utils.parseUnits("20", 18);
-        
-        const appBtn = document.getElementById('approveBtn');
-        const rentBtn = document.getElementById('rentBtn');
+    const minRequired = ethers.utils.parseUnits("20", 18);
+    const appBtn = document.getElementById('approveBtn');
+    const rentBtn = document.getElementById('rentBtn');
 
-        if (allow.gte(minRequired)) {
-            appBtn.classList.remove('btn-outline-primary');
-            appBtn.classList.add('btn-success', 'text-white');
-            appBtn.disabled = true;
-            document.getElementById('approveIcon').innerText = "✅";
-            document.getElementById('approveText').innerText = "授權已完成";
-            
-            rentBtn.disabled = false;
-            rentBtn.classList.remove('btn-secondary');
-            rentBtn.classList.add('btn-main');
-            rentBtn.style.opacity = "1";
-            rentBtn.style.background = "linear-gradient(135deg, #0d9488, #0284c7)";
-        }
+if (allow.gte(minRequired)) {
+    // --- 這裡就是「連線後改為授權已完成」的視覺邏輯 ---
+    appBtn.classList.remove('btn-outline-primary'); // 移除藍框
+    appBtn.classList.add('btn-success', 'text-white'); // 變成綠底白字
+    appBtn.disabled = true; // 停用按鈕，防止重複點擊
+    document.getElementById('approveIcon').innerText = "✅";
+    document.getElementById('approveText').innerText = "授權已完成";
+    
+    // 同時解鎖第二步的租借按鈕
+    rentBtn.disabled = false;
+    rentBtn.style.opacity = "1";
+    rentBtn.style.background = "linear-gradient(135deg, #0d9488, #0284c7)";
+}
 
         // 3. 檢查租借狀態
         const bike = new ethers.Contract(bikeAddr, abi, provider);
@@ -383,20 +382,15 @@ async function handleApprove() {
         const signer = provider.getSigner();
         const token = new ethers.Contract(nkustAddr, abi, signer);
 
-        console.log("正在發起授權請求...");
+        const tx = await token.approve(bikeAddr, ethers.utils.parseUnits("1000", 18));
+        alert("授權交易已送出，請稍候...");
+        await tx.wait(); // 等待鏈上確認
         
-        // 授權 100 顆 (確保足夠支付 20 顆的租金+押金)
-        // 使用 parseUnits("100", 18) 確保單位對齊鏈上的 18 位精度
-        const tx = await token.approve(bikeAddr, ethers.utils.parseUnits("100", 18));
-        
-        alert("授權交易已送出，請等待區塊鏈確認...");
-        await tx.wait(); // 這裡會停下來直到鏈上確認成功
-        
-        alert("授權成功！現在可以進行租借。");
-        location.reload(); // 重新整理網頁，讓 init() 重新檢查授權狀態並開啟租借按鈕
-    } catch (e) {
-        console.error("授權失敗:", e);
-        alert("授權取消或失敗，請重試。");
+        alert("授權成功！");
+        init(); // 重新執行 init，按鈕就會自動變綠色了
+    } catch (err) {
+        console.error(err);
+        alert("授權失敗");
     }
 }
 
