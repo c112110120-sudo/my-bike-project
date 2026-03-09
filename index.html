@@ -376,25 +376,28 @@ async function handleApprove() {
     }
 
     async function handleBuyTokens() {
-        const amountTwd = document.getElementById('buyAmount').value;
-        if (!amountTwd || amountTwd <= 0) { alert("請輸入數量"); return; }
+    const amount = document.getElementById('buyAmount').value;
+    if (!amount || amount <= 0) return alert("請輸入有效的購買數量");
 
-        try {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const signer = provider.getSigner();
-            const token = new ethers.Contract(nkustAddr, abi, signer);
-            const ethUsdText = document.getElementById('ethUsdDisplay').innerText;
-            const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 1952.34;
-            const usdToTwd = 32.5; 
-            const ethToPay = ((amountTwd / usdToTwd) / currentEthPrice).toFixed(18);
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const tokenContract = new ethers.Contract(nkustAddr, abi, signer);
 
-            const tx = await token.buyToken({ value: ethers.utils.parseEther(ethToPay.toString()) });
-            alert("交易中...");
-            await tx.wait();
-            alert("購買成功！");
-            init();
-        } catch (e) { alert("失敗或取消"); }
+        // 假設 100 NKUST = 0.01 ETH (請根據你的合約比例調整)
+        // 這裡必須轉換成 Wei
+        const ethValue = ethers.utils.parseEther((amount * 0.0001).toString()); 
+
+        const tx = await tokenContract.buyTokens({ value: ethValue });
+        await tx.wait();
+        
+        alert("購買成功！");
+        location.reload(); // 強制刷新的目的是讓 init() 重新抓取正確的 1100 數字
+    } catch (err) {
+        console.error("買幣失敗:", err);
+        alert("交易失敗，請檢查錢包餘額或網路狀態");
     }
+}
 
     async function updateWeather(city) {
         const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
