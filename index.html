@@ -601,49 +601,50 @@ function calculateRealtimeEth() {
         } else { alert("密碼錯誤！"); }
     }
     
-    async function updatePrice() {
-        try {
-            const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
-            const data = await res.json();
-            const price = data.ethereum.usd;
-            document.getElementById('ethUsdDisplay').innerText = "$ " + price.toLocaleString();
-            if(document.getElementById('db-eth')) document.getElementById('db-eth').innerText = "$ " + price.toLocaleString();
-        } catch(e){}
-    }
-
-   // --- [5. 啟動與監聽邏輯] ---
-
-// 建立一個統一的啟動進入點
-// ⚡ 核心：啟動所有功能
-// --- 啟動與監聽 (請確保這段在檔案最末尾) ---
-async function startApp() {
-    try {
-        // 1. 抓取氣象與匯率
-        await updateWeather('Kaohsiung'); 
-        await updatePrice();
-        
-        // 2. 初始化合約資料
-        if (typeof init === "function") {
-            await init(); 
+  async function updatePrice() {
+        try {
+            const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+            const data = await res.json();
+            const price = data.ethereum.usd;
+            const display = document.getElementById('ethUsdDisplay');
+            const dbDisplay = document.getElementById('db-eth');
+            if (display) display.innerText = "$ " + price.toLocaleString();
+            if (dbDisplay) dbDisplay.innerText = "$ " + price.toLocaleString();
+        } catch(e) {
+            console.error("匯率更新失敗", e);
         }
-        
-        console.log("SmartBike 系統啟動成功");
+    } // 這裡確實關閉 updatePrice
 
-        // 3. MetaMask 監聽
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', () => location.reload());
-            window.ethereum.on('chainChanged', () => location.reload());
+    // --- [5. 啟動與監聽邏輯] ---
+
+    async function startApp() {
+        try {
+            // 1. 抓取基礎數據
+            if (typeof updateWeather === "function") await updateWeather('Kaohsiung'); 
+            await updatePrice();
+            
+            // 2. 初始化合約資料
+            if (typeof init === "function") {
+                await init(); 
+            }
+            
+            console.log("SmartBike 系統啟動成功");
+
+            // 3. MetaMask 監聽
+            if (window.ethereum) {
+                window.ethereum.on('accountsChanged', () => location.reload());
+                window.ethereum.on('chainChanged', () => location.reload());
+            }
+        } catch (e) {
+            console.error("啟動失敗:", e);
         }
-    } catch (e) {
-        console.error("啟動失敗:", e);
-    }
-}
+    } // 這裡確實關閉 startApp
 
-// 綁定載入事件
-window.addEventListener('load', startApp);
+    // ⚡ 核心：啟動所有功能
+    window.addEventListener('load', startApp);
 
-// 每分鐘更新匯率
-setInterval(updatePrice, 60000);
+    // 每分鐘更新匯率
+    setInterval(updatePrice, 60000);
 
 </script>            
 </body>
