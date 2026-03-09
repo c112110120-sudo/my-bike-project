@@ -614,13 +614,14 @@ function calculateRealtimeEth() {
    // --- [5. 啟動與監聽邏輯] ---
 
 // 建立一個統一的啟動進入點
+// ⚡ 核心：啟動所有功能
 async function startApp() {
     try {
-        // 1. 優先抓取基礎數據 (天氣與匯率)
+        // 1. 優先抓取基礎數據
         await updateWeather('Kaohsiung'); 
         await updatePrice();
         
-        // 2. 執行 Web3 初始化 (讀取餘額、檢查授權狀態)
+        // 2. 執行 Web3 初始化
         if (typeof init === "function") {
             await init(); 
         }
@@ -629,29 +630,26 @@ async function startApp() {
     } catch (e) {
         console.error("系統啟動失敗:", e);
     }
-}
+} // <--- 這裡才是真正結束 startApp
 
-// 監聽 MetaMask 帳號與網路切換 (這部分維持你的邏輯，但寫法更精簡)
+// 監聽 MetaMask 帳號與網路切換 (獨立在 startApp 外面)
 if (window.ethereum) {
-    // 偵測帳號切換
     window.ethereum.on('accountsChanged', () => {
         console.log("偵測到帳號切換，正在更新數據...");
         location.reload(); 
     });
 
-    // 偵測網路切換 (預防切到主網)
-    if (window.ethereum) {
-        window.ethereum.on('chainChanged', () => {
-            location.reload();
-        });
-    }
-} // 這是 startApp 的結束
+    window.ethereum.on('chainChanged', () => {
+        location.reload();
+    });
+}
 
-// ⚡ 核心：啟動所有功能
+// 綁定載入事件
 window.addEventListener('load', startApp);
 
 // 設定定時器：每 60 秒自動背景更新匯率
 setInterval(updatePrice, 60000);
+
 </script>            
 </body>
 </html>
