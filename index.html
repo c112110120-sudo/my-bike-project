@@ -447,17 +447,6 @@ async function handleBuyTokens() {
     } catch (err) { alert("交易失敗"); }
 }
 
-
-
-async function handleRent() {
-    try {
-        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
-        const bike = new ethers.Contract(bikeAddr, abi, signer);
-        const tx = await bike.rent();
-        await tx.wait(); 
-        location.reload();
-    } catch (e) { alert("租車失敗，請確認餘額"); }
-}
 async function handleReturn() {
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -667,41 +656,6 @@ async function refreshAdminData() {
         alert("無法讀取後台數據，請確認合約地址與網路。");
     }
 }
-// --------------------------------------------
-
-// ... 原有的 init 函數 ...
-
-    // --- 授權、租車、歸還 ---
-    async function handleApprove() {
-        try {
-            const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
-            const token = new ethers.Contract(nkustAddr, abi, signer);
-            const tx = await token.approve(bikeAddr, ethers.utils.parseUnits("1000", 18));
-            await tx.wait();
-            alert("授權成功！");
-            init();
-        } catch (err) { alert("授權失敗"); }
-    }
-
-    async function handleRent() {
-        try {
-            const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
-            const bike = new ethers.Contract(bikeAddr, abi, signer);
-            const tx = await bike.rent();
-            await tx.wait(); 
-            location.reload();
-        } catch (e) { alert("租車失敗"); }
-    }
-
-    async function handleReturn() {
-        try {
-            const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
-            const bike = new ethers.Contract(bikeAddr, abi, signer);
-            const tx = await bike.returnBike();
-            await tx.wait(); 
-            location.reload();
-        } catch (e) { alert("歸還失敗"); }
-    }
 
     // --- 工具功能 (計算、氣象、密碼) ---
    function calculateRealtimeEth() {
@@ -734,17 +688,7 @@ async function refreshAdminData() {
             document.getElementById('adminPanel').style.display = 'block';
             updateAdminTable();
         } else { alert("密碼錯誤！"); }
-    }
-
-    async function updateWeather(city) {
-        try {
-            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=db68851cff88bbfaf24ddcefbccb2a18&units=metric&lang=zh_tw`);
-            const data = await res.json();
-            document.getElementById('cityName').innerText = (city === 'Taipei' ? "台北市" : "高雄市");
-            document.getElementById('temp').innerText = Math.round(data.main.temp) + "°C";
-            if(document.getElementById('db-temp')) document.getElementById('db-temp').innerText = Math.round(data.main.temp) + "°C";
-        } catch(e){}
-    }
+    }
     
     async function updatePrice() {
         try {
