@@ -194,14 +194,14 @@
             <h6 class="fw-bold text-secondary mb-3">📋 租借歷史 (Masked Addresses)</h6>
             <div class="table-responsive">
                 <table class="table table-hover align-middle small">
-                    <thead class="table-light">
-                        <tr>
-                            <th>User (ID)</th>
-                            <th>Action</th>
-                            <th>Timestamp</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
+                   <thead class="table-light">
+    <tr>
+        <th>使用者地址 (Wallet)</th>
+        <th>當前狀態</th>
+        <th>租車時間 (Start)</th>
+        <th>歸還狀態 (End)</th>
+    </tr>
+</thead>
                     <tbody id="eventLog">
                         <h6 class="fw-bold text-secondary mb-3">📋 租借歷史 (永久鏈上數據)</h6>
 <div class="table-responsive">
@@ -288,30 +288,59 @@
 
     // --- 管理員數據同步 ---
     async function updateAdminTable() {
-        try {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const bikeContract = new ethers.Contract(bikeAddr, abi, provider);
-            const allAddresses = await bikeContract.getAllUsers();
-            const tableBody = document.getElementById('adminTableBody');
-            if (!tableBody) return;
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const bikeContract = new ethers.Contract(bikeAddr, abi, provider);
+        const allAddresses = await bikeContract.getAllUsers();
+        const tableBody = document.getElementById('adminTableBody');
+        if (!tableBody) return;
 
-            tableBody.innerHTML = "";
-            for (let addr of allAddresses) {
-                const info = await bikeContract.users(addr);
-                const statusBadge = info.isRented ? 
-                    '<span class="badge bg-warning text-dark">租用中</span>' : 
-                    '<span class="badge bg-secondary">已歸還</span>';
-                
-                tableBody.innerHTML += `
-                    <tr>
-                        <td class="small text-muted">${addr}</td>
-                        <td>${statusBadge}</td>
-                        <td>${info.isRented ? new Date(info.startTime.toNumber() * 1000).toLocaleString() : '-'}</td>
-                    </tr>
-                `;
-            }
-        } catch (err) { console.error("Update Admin Error:", err); }
+        tableBody.innerHTML = "";
+
+        // 定義一個時間轉換工具，確保格式為：2026/03/09 14:30:05
+        const formatFullTime = (timestamp) => {
+            if (!timestamp || timestamp == 0) return "-";
+            const date = new Date(timestamp * 1000);
+            const Y = date.getFullYear();
+            const M = String(date.getMonth() + 1).padStart(2, '0');
+            const D = String(date.getDate()).padStart(2, '0');
+            const h = String(date.getHours()).padStart(2, '0');
+            const m = String(date.getMinutes()).padStart(2, '0');
+            const s = String(date.getSeconds()).padStart(2, '0');
+            return `${Y}/${M}/${D} ${h}:${m}:${s}`;
+        };
+
+        for (let addr of allAddresses) {
+            const info = await bikeContract.users(addr);
+            
+            // 判斷狀態標籤
+            const statusBadge = info.isRented ? 
+                '<span class="badge bg-warning text-dark">租用中</span>' : 
+                '<span class="badge bg-secondary">已歸還</span>';
+            
+            // 租車時間 (startTime)
+            const startTimeStr = formatFullTime(info.startTime.toNumber());
+            
+            // 還車時間邏輯：
+            // 由於你的合約 user 結構目前可能只存 startTime，
+            // 如果 isRented 為 false，代表該用戶「最後一次操作」是還車。
+            const returnTimeStr = info.isRented ? 
+                '<span class="text-muted small">使用中...</span>' : 
+                '已結算完成'; 
+
+            tableBody.innerHTML += `
+                <tr>
+                    <td class="small text-muted" style="font-family: monospace;">${addr}</td>
+                    <td>${statusBadge}</td>
+                    <td class="small">${startTimeStr}</td>
+                    <td class="small">${returnTimeStr}</td>
+                </tr>
+            `;
+        }
+    } catch (err) { 
+        console.error("更新管理員表格失敗:", err); 
     }
+}
 
     // --- 買幣功能 (修正版) ---
     async function handleBuyTokens() {
