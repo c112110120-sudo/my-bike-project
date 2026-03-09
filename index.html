@@ -49,23 +49,35 @@
     <div class="container py-5">
     <h1 class="text-center fw-bold mb-5" style="color: #0369a1;">🚲 SmartBike 租賃系統</h1>
     
-    <div class="row g-4">
-        <div class="col-md-5">
-            <div class="glass mb-4">
-                <h5 class="fw-bold mb-3"><span class="me-2">📍</span>氣象與匯率</h5>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>當前城市：<b id="cityName">高雄市</b></span>
-                    <span id="temp" class="text-primary fw-bold">--°C</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span>ETH 匯率：</span>
-                    <b id="ethUsdDisplay" class="text-success">$ ----</b>
-                </div>
-                <div class="btn-group w-100 mt-3">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="updateWeather('Taipei')">台北</button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="updateWeather('Kaohsiung')">高雄</button>
-                </div>
-            </div>
+    <div class="glass p-4 mb-4">
+    <div class="d-flex align-items-center mb-3">
+        <span class="fs-4 me-2">📍</span>
+        <h5 class="fw-bold m-0">氣象與匯率</h5>
+    </div>
+
+    <div class="btn-group w-100 mb-3" role="group">
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="updateWeather('Taipei')">台北</button>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="updateWeather('Kaohsiung')">高雄</button>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted">當前城市：</span>
+        <span id="cityName" class="fw-bold text-primary">高雄市</span>
+        <span id="cityTemp" class="fw-bold text-primary">21°C</span>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted">ETH 匯率 (美金) ：</span>
+        <span id="ethUsdDisplay" class="fw-bold text-success">$ 2,001.53</span>
+    </div>
+
+    <div class="pt-2 border-top">
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="small text-muted">台幣換算 (參考)：</span>
+            <span id="twdToEthDisplay" class="small fw-bold text-danger">100 TWD ≈ 0.001536 ETH</span>
+        </div>
+    </div>
+</div>
 
             <div class="glass border-primary">
                 <h5 class="fw-bold mb-3"><span class="me-2">💳</span>我的錢包資產</h5>
@@ -252,6 +264,9 @@
 
             // 更新後台表格
             await updateAdminTable();
+
+            // --- 新增這行：確保網頁開啟時立刻抓取最新匯率與台幣換算 ---
+            await fetchEthPrice(); 
 
         } catch (e) {
             console.error("Init Error:", e);
