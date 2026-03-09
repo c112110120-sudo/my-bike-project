@@ -226,7 +226,7 @@
 <script>
   // --- [1. 全域變數定義] ---
 let globalEstimatedEth = "0";
-const ADMIN_PASSWORD = "123"; // 👈 請設定你的管理員密碼
+const ADMIN_PASSWORD = "nkust"; // 👈 請設定你的管理員密碼
 const nkustAddr = "0x06830407ECE8DF4F534ab9191112C7286aF50156";
 const bikeAddr = "0xecE2D3BA604410A9E2464BD5c8363B2D2Fb01eE0";
 const abi = [ 
@@ -260,17 +260,15 @@ async function init() {
         const appBtn = document.getElementById('approveBtn');
         const rentBtn = document.getElementById('rentBtn');
 
-        if (appBtn && rentBtn) {
-            if (allow.gte(minRequired)) {
-                appBtn.classList.remove('btn-outline-primary');
-                appBtn.classList.add('btn-success', 'text-white');
-                appBtn.disabled = true;
-                document.getElementById('approveIcon').innerText = "✅";
-                document.getElementById('approveText').innerText = "授權已完成";
-                rentBtn.disabled = false;
-                rentBtn.style.opacity = "1";
-                rentBtn.style.background = "linear-gradient(135deg, #0d9488, #0284c7)";
-            }
+       if (appBtn && rentBtn && allow.gte(minRequired)) {
+            appBtn.classList.remove('btn-outline-primary');
+            appBtn.classList.add('btn-success', 'text-white');
+            appBtn.disabled = true;
+            document.getElementById('approveIcon').innerText = "✅";
+            document.getElementById('approveText').innerText = "授權已完成";
+            rentBtn.disabled = false;
+            rentBtn.style.opacity = "1";
+            rentBtn.style.background = "linear-gradient(135deg, #0d9488, #0284c7)";
         }
 
         // 3. 檢查租借狀態
@@ -280,20 +278,23 @@ async function init() {
         const emptyStatus = document.getElementById('emptyStatus');
 
         if (info.isRented) {
-            statusBox.style.display = 'block';
-            emptyStatus.style.display = 'none';
+            if (statusBox) statusBox.style.display = 'block';
+            if (emptyStatus) emptyStatus.style.display = 'none';
             document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
             rentBtn.disabled = true;
             rentBtn.style.opacity = "0.5";
             rentBtn.innerText = "支付租還(使用中)";
         } else {
-            statusBox.style.display = 'none';
-            emptyStatus.style.display = 'flex';
+            if (statusBox) statusBox.style.display = 'none';
+            if (emptyStatus) emptyStatus.style.display = 'flex';
         }
 
         // 4. 數據啟動
         await fetchEthPrice(); 
         await updateWeather('Kaohsiung'); 
+        if (document.getElementById('adminPanel').style.display === 'block') {
+            await updateAdminTable();
+        }
 
     } catch (e) {
         console.error("Init Error:", e);
@@ -389,15 +390,14 @@ async function updateAdminTable() {
         const bike = new ethers.Contract(bikeAddr, abi, provider);
         const allAddresses = await bike.getAllUsers();
         const tableBody = document.getElementById('adminTableBody');
+        if (!tableBody) return;
         tableBody.innerHTML = "";
-
         for (let addr of allAddresses) {
             const info = await bike.users(addr);
             const statusBadge = info.isRented ? '<span class="badge bg-warning text-dark">租用中</span>' : '<span class="badge bg-secondary">已歸還</span>';
-            const startTimeStr = info.startTime > 0 ? new Date(info.startTime.toNumber() * 1000).toLocaleString() : "-";
-            tableBody.innerHTML += `<tr><td class="small text-muted">${addr}</td><td>${statusBadge}</td><td class="small">${startTimeStr}</td><td class="small">已同步</td></tr>`;
+            tableBody.innerHTML += `<tr><td class="small text-muted">${addr}</td><td>${statusBadge}</td><td class="small">${info.startTime > 0 ? new Date(info.startTime.toNumber() * 1000).toLocaleString() : "-"}</td><td class="small">已同步</td></tr>`;
         }
-    } catch (err) { console.error("後台更新失敗"); }
+    } catch (e) { console.log("後台刷新中..."); }
 }
 
 // --- [5. 事件監聽] ---
