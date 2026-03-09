@@ -164,44 +164,51 @@
 </div>
         
     <div id="adminPanel">
-        <div class="glass border-danger shadow-lg">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="fw-bold text-danger m-0">📊 區塊鏈後台數據中心</h4>
-                <button class="btn btn-sm btn-outline-danger" onclick="loadHistory()">🔄 刷新鏈上日誌</button>
-            </div>
-            
-            <div class="row text-center mb-4">
-                <div class="col-4">
-                    <div class="p-3 bg-light rounded-3">
-                        <div class="small text-muted">實時氣溫</div>
-                        <div class="h5 fw-bold mb-0" id="db-temp">--°C</div>
-                    </div>
-                </div>
-                <div class="col-4">
-                    <div class="p-3 bg-light rounded-3">
-                        <div class="small text-muted">ETH/USD</div>
-                        <div class="h5 fw-bold mb-0 text-success" id="db-eth">$--</div>
-                    </div>
-                </div>
-                <div class="col-4">
-                    <div class="p-3 bg-light rounded-3">
-                        <div class="small text-muted">節點狀態</div>
-                        <div class="h5 fw-bold mb-0 text-primary">Connected</div>
-                    </div>
-                </div>
-            </div>
+       <div class="col-12 mt-5">
+    <div class="glass border-danger" style="border-width: 2px;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold text-danger m-0">📊 區塊鏈後台數據中心</h4>
+            <button class="btn btn-sm btn-outline-danger" onclick="refreshAdminData()">🔄 刷新鏈上日誌</button>
+        </div>
 
-            <h6 class="fw-bold text-secondary mb-3">📋 租借歷史 (Masked Addresses)</h6>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle small">
-                   <thead class="table-light">
-    <tr>
-        <th>使用者地址 (Wallet)</th>
-        <th>當前狀態</th>
-        <th>租車時間 (Start)</th>
-        <th>歸還狀態 (End)</th>
-    </tr>
-</thead>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4 text-center">
+                <div class="p-3 bg-light rounded-3">
+                    <div class="small text-muted">即時氣溫</div>
+                    <div id="adminTemp" class="h4 fw-bold mb-0">24°C</div>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="p-3 bg-light rounded-3">
+                    <div class="small text-muted">ETH/USD</div>
+                    <div id="adminEthPrice" class="h4 fw-bold text-success mb-0">$ 1,955.53</div>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="p-3 bg-light rounded-3">
+                    <div class="small text-muted">節點狀態</div>
+                    <div class="h4 fw-bold text-primary mb-0">Connected</div>
+                </div>
+            </div>
+        </div>
+
+        <h6 class="fw-bold text-secondary mb-3"><span class="me-2">📋</span>租借歷史 (永久鏈上數據)</h6>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 40%;">使用者地址 (Wallet)</th>
+                        <th class="text-center">當前狀態</th>
+                        <th class="text-center">租車時間 (Start)</th>
+                        <th class="text-center">歸還狀態 (End)</th>
+                    </tr>
+                </thead>
+                <tbody id="adminTableBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
                     <tbody id="eventLog">
                         <h6 class="fw-bold text-secondary mb-3">📋 租借歷史 (永久鏈上數據)</h6>
 <div class="table-responsive">
