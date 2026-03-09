@@ -216,14 +216,15 @@
     const ADMIN_PASSWORD = "nkust";
     
     const abi = [
-        "function balanceOf(address owner) view returns (uint256)",
-        "function approve(address spender, uint256 amount) returns (bool)",
-        "function allowance(address owner, address spender) view returns (uint256)",
-        "function buyToken() payable",
-        "function rent()", 
-        "function returnBike()",
-        "function users(address) view returns (uint256 startTime, bool isRented)"
-    ];
+   
+    "function balanceOf(address owner) view returns (uint256)",
+    "function approve(address spender, uint256 amount) returns (bool)",
+    "function allowance(address owner, address spender) view returns (uint256)",
+    "function buyTokens() payable", // 確保這裡有名稱對齊
+    "function rent()", 
+    "function returnBike()",
+    "function users(address) view returns (uint256 startTime, bool isRented)"
+];
 
     function calculateRealtimeEth() {
         const amount = document.getElementById('buyAmount').value;
@@ -382,29 +383,28 @@ async function handleApprove() {
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
-        
-        // 確保這裡使用的是包含 buyTokens 的合約實例
         const tokenContract = new ethers.Contract(nkustAddr, abi, signer);
 
-        // 匯率計算：假設 1 NKUST = 0.0001 ETH
-        // 使用 fixed(6) 避免 JavaScript 產生科學記號 (e-7) 導致 parseEther 報錯
-        const ethNeeded = (parseFloat(amount) * 0.0001).toFixed(6);
+        // 改用更精確的計算方式：1 NKUST = 0.0001 ETH
+        // 先計算所需 ETH 字串，避免浮點數誤差
+        const ethNeeded = (Number(amount) * 0.0001).toFixed(6);
         const ethValue = ethers.utils.parseEther(ethNeeded); 
 
-        console.log(`準備購買 ${amount} NKUST，需支付 ${ethNeeded} ETH`);
-
+        // 呼叫時加入 gasLimit 確保 MetaMask 能強制跳出
         const tx = await tokenContract.buyTokens({ 
             value: ethValue,
-            gasLimit: 100000 // 加入 Gas Limit 避免某些測試網預估錯誤
+            gasLimit: 150000 // 手動給予足夠的 Gas
         });
         
+        console.log("交易已送出:", tx.hash);
         await tx.wait();
+        
         alert("購買成功！");
         location.reload(); 
     } catch (err) {
-        console.error("買幣詳細錯誤:", err);
-        // 如果錯誤訊息包含 "is not a function"，代表 ABI 沒寫進 buyTokens
-        alert("購買失敗！請檢查錢包餘額或確認合約是否支援 buyTokens 函數");
+        console.error("詳細錯誤訊息:", err);
+        // 檢查控制台 (F12) 的報錯內容
+        alert("購買失敗！請確認合約是否支援 buyTokens 且錢包有足夠的 ETH");
     }
 }
 
