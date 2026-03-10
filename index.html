@@ -336,7 +336,9 @@ async function handleRent() {
         const signer = provider.getSigner();
         const bike = new ethers.Contract(bikeAddr, abi, signer);
         
-        const tx = await bike.rent();
+        const tx = await bike.rent({
+            gasLimit: 300000 // 手動給一個足夠的上限
+        });        
         alert("交易已送出，等待區塊鏈處理...");
         await tx.wait();
         
