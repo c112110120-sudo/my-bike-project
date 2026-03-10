@@ -375,17 +375,54 @@ function checkPassword() {
 
 // --- [3. 功能函數] ---
 async function fetchEthPrice() {
-    try {
-        const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
-        const data = await res.json();
-        const price = data.ethereum.usd;
-        document.getElementById('ethUsdDisplay').innerText = "$ " + price.toLocaleString();
-        
-        const usdToTwd = 32.5;
-        const ethValue = ((100 / usdToTwd) / price).toFixed(6);
-        document.getElementById('twdToEthDisplay').innerText = `${ethValue} ETH`;
-    } catch(e){ console.error("匯率更新失敗"); }
+    try {
+        // 1. 抓取美金對台幣匯率 (即時)
+        const fxRes = await fetch("https://open.er-api.com/v6/latest/USD");
+        const fxData = await fxRes.json();
+        
+        // 🌟 重點：更新全域變數，讓 calculateRealtimeEth 拿得到最新數字
+        currentUsdToTwd = fxData.rates.TWD; 
+        console.log("當前最新台幣匯率:", currentUsdToTwd);
+
+        // 2. 抓取 ETH 美金價格
+        const ethRes = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+        const ethData = await ethRes.json();
+        const ethUsdPrice = ethData.ethereum.usd;
+
+        // 3. 計算並更新左上角 100 TWD 的顯示
+        const ethValue = ((100 / currentUsdToTwd) / ethUsdPrice).toFixed(8);
+        const display = document.getElementById('twdToEthDisplay');
+        if (display) display.innerText = `${ethValue} ETH`;
+        
+        // 更新美金顯示
+        const ethUsdDisplay = document.getElementById('ethUsdDisplay');
+        if (ethUsdDisplay) ethUsdDisplay.innerText = "$ " + ethUsdPrice.toLocaleString();
+
+    } catch (e) {
+        console.error("匯率更新失敗，使用預設值 32.5", e);
+        currentUsdToTwd = 32.5; // 如果網路斷了，才用保底值
+    }
 }
+ async function calculateRealtimeEth() {
+    const amount = document.getElementById('buyAmount').value;
+    const quoteElement = document.getElementById('ethQuote');
+    
+    // 從畫面上抓取最新的 ETH 美金價
+    const ethUsdText = document.getElementById('ethUsdDisplay')?.innerText || "2400";
+    const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 2400;
+
+    if (!amount || amount <= 0) {
+        globalEstimatedEth = "0";
+        return;
+    }
+
+    // 🌟 這裡使用的是已經被 fetchEthPrice 更新過的實時匯率
+    globalEstimatedEth = ((parseFloat(amount) / currentUsdToTwd) / currentEthPrice).toFixed(15);
+    
+    if (quoteElement) {
+        quoteElement.innerHTML = `需支付約 <span class="text-danger fw-bold">${globalEstimatedEth} ETH</span>`;
+    }
+}   
 
 async function updateWeather(city) {
     try {
