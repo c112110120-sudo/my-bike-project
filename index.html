@@ -253,6 +253,19 @@
 
 <script>
   // --- [1. 全域變數定義] ---
+  // 1. 先定義這兩個 ABI 變數
+const erc20Abi = [
+    "function balanceOf(address owner) view returns (uint256)",
+    "function approve(address spender, uint256 amount) returns (bool)",
+    "function allowance(address owner, address spender) view returns (uint256)"
+];
+
+const bikeAbi = [
+    "function rent() public",
+    "function returnBike() public",
+    "function users(address) view returns (uint256 startTime, bool isRented)",
+    "function getAllUsers() view returns (address[])"
+];
 let globalEstimatedEth = "0";
 const ADMIN_PASSWORD = "nkust"; // 👈 請設定你的管理員密碼
 const nkustAddr = "0x06830407ECE8DF4F534ab9191112C7286aF50156";
@@ -343,7 +356,7 @@ async function handleRent() {
         
         // 🌟 使用專屬的 bikeAbi
         const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
-        const tx = await bike.rent({ gasLimit: 200000 }); // 強制給 gas 避開估算問題
+        const tx = await bike.rent({ gasLimit: 300000 }); // 強制給 gas 避開估算問題
         
         await tx.wait();
         alert("租車成功！");
