@@ -376,31 +376,30 @@ function checkPassword() {
 // --- [3. 功能函數] ---
 async function fetchEthPrice() {
     try {
-        // 1. 抓取美金對台幣匯率 (即時)
+        // 1. 抓取美金對台幣匯率 (維持原樣，這個 API 很穩定)
         const fxRes = await fetch("https://open.er-api.com/v6/latest/USD");
         const fxData = await fxRes.json();
-        
-        // 🌟 重點：更新全域變數，讓 calculateRealtimeEth 拿得到最新數字
         currentUsdToTwd = fxData.rates.TWD; 
-        console.log("當前最新台幣匯率:", currentUsdToTwd);
 
-        // 2. 抓取 ETH 美金價格
-        const ethRes = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+        // 2. 🌟 換成這個 API 抓 ETH 價格 (CryptoCompare，較少 CORS 問題)
+        const ethRes = await fetch("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD");
         const ethData = await ethRes.json();
-        const ethUsdPrice = ethData.ethereum.usd;
+        const ethUsdPrice = ethData.USD; // 取得美金價
 
-        // 3. 計算並更新左上角 100 TWD 的顯示
+        // 3. 更新 UI
+        const ethDisplay = document.getElementById('ethUsdDisplay');
+        if (ethDisplay) ethDisplay.innerText = "$ " + ethUsdPrice.toLocaleString();
+
         const ethValue = ((100 / currentUsdToTwd) / ethUsdPrice).toFixed(8);
-        const display = document.getElementById('twdToEthDisplay');
-        if (display) display.innerText = `${ethValue} ETH`;
-        
-        // 更新美金顯示
-        const ethUsdDisplay = document.getElementById('ethUsdDisplay');
-        if (ethUsdDisplay) ethUsdDisplay.innerText = "$ " + ethUsdPrice.toLocaleString();
+        const twdToEthDisplay = document.getElementById('twdToEthDisplay');
+        if (twdToEthDisplay) twdToEthDisplay.innerText = `${ethValue} ETH`;
+
+        console.log("資料更新成功！ETH:", ethUsdPrice, "USD/TWD:", currentUsdToTwd);
 
     } catch (e) {
-        console.error("匯率更新失敗，使用預設值 32.5", e);
-        currentUsdToTwd = 32.5; // 如果網路斷了，才用保底值
+        console.error("匯率更新失敗，改用保底數據:", e);
+        // 如果連這個都失敗，設定一個基本值讓網頁不崩潰
+        currentUsdToTwd = 32.5;
     }
 }
  async function calculateRealtimeEth() {
