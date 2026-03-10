@@ -276,12 +276,25 @@ async function init() {
         const accounts = await provider.send("eth_requestAccounts", []);
         const user = accounts[0];
 
-        // 1. 更新餘額
-        const token = new ethers.Contract(nkustAddr, abi, provider);
-        const bal = await token.balanceOf(user);
-        const cleanBal = Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18)));
-        const balDisplay = document.getElementById('nkustBalanceDisplay');
-        if (balDisplay) balDisplay.innerText = cleanBal + " NKUST";
+        // 1. 更新餘額 (精確版)
+const token = new ethers.Contract(nkustAddr, abi, provider);
+const bal = await token.balanceOf(user);
+
+// 改成顯示兩位小數，不要直接 Math.floor
+const formattedBal = ethers.utils.formatUnits(bal, 18);
+const displayBal = parseFloat(formattedBal).toFixed(2); // 保留兩位小數，例如 19.95
+
+const balDisplay = document.getElementById('nkustBalanceDisplay');
+if (balDisplay) {
+    balDisplay.innerText = displayBal + " NKUST";
+    
+    // 💡 額外檢查：如果餘額小於 20，把文字變紅色提醒
+    if (parseFloat(displayBal) < 20) {
+        balDisplay.style.color = "red";
+    } else {
+        balDisplay.style.color = "inherit";
+    }
+}
 
         // 2. 檢查授權
         const allow = await token.allowance(user, bikeAddr);
@@ -305,48 +318,39 @@ async function init() {
 }
        // --- [3. 交易處理函式] ---
 
-// 點擊「授權」按鈕時觸發
+// --- 修正後的 handleApprove ---
 async function handleApprove() {
-    if (!window.ethereum) return;
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
-        const token = new ethers.Contract(nkustAddr, abi, signer);
         
-        // 授權極大值，或是固定 100 NKUST，讓使用者不用每次都授權
+        // 🌟 使用專屬的 erc20Abi
+        const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
         const amount = ethers.utils.parseUnits("100", 18);
         const tx = await token.approve(bikeAddr, amount);
         
-        document.getElementById('approveText').innerText = "等待鏈上確認...";
-        await tx.wait(); // 等待區塊鏈確認
-        
+        await tx.wait();
         alert("授權成功！");
-        await init(); // 重新整理狀態
-    } catch (e) {
-        console.error("Approve Error:", e);
-        alert("授權失敗，請查看控制台。");
-    }
+        await init();
+    } catch (e) { console.error(e); }
 }
-        
 
-// 點擊「支付租借」按鈕時觸發
+// --- 修正後的 handleRent ---
 async function handleRent() {
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
-        const bike = new ethers.Contract(bikeAddr, abi, signer);
         
-        const tx = await bike.rent({
-            gasLimit: 300000 // 手動給一個足夠的上限
-        });        
-        alert("交易已送出，等待區塊鏈處理...");
+        // 🌟 使用專屬的 bikeAbi
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
+        const tx = await bike.rent({ gasLimit: 200000 }); // 強制給 gas 避開估算問題
+        
         await tx.wait();
-        
-        alert("租借成功！請安全騎乘。");
+        alert("租車成功！");
         await init();
-    } catch (e) {
+    } catch (e) { 
         console.error("Rent Error:", e);
-        alert("租借失敗，餘額不足或已在租借中。");
+        alert("租車失敗！請確認餘額是否足夠。");
     }
 }
 
