@@ -447,6 +447,7 @@ function checkPassword() {
         document.getElementById('adminModal').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         updateAdminTable();
+        alert("歡迎進入管理後台！");
     } else { alert("密碼錯誤！"); }
 }
 
@@ -504,9 +505,8 @@ async function updateAdminTable() {
                     </td>
                     <td class="text-center">${statusBadge}</td>
                     <td class="text-center small">${startTimeStr}</td>
-                    <td class="text-center small">${returnTimeStr}</td>
-                </tr>
-            `;
+                    <td class="text-center small">${info.isRented ? '使用中' : '已結算'}</td>                
+                </tr>`;
         }
     } catch (err) { 
         console.error("更新管理員表格失敗:", err); 
@@ -639,12 +639,8 @@ function calculateRealtimeEth() {
         } catch (e) {
             console.error("啟動失敗:", e);
         }
-    } // 這裡確實關閉 startApp
-
-    // ⚡ 核心：啟動所有功能
+    }
     window.addEventListener('load', startApp);
-
-    // 每分鐘更新匯率
     setInterval(updatePrice, 60000);
 
 </script>            
