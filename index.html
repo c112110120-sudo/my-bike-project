@@ -312,6 +312,42 @@ async function init() {
         console.error("初始化失敗:", e);
     }
 }
+
+    // --- 授權功能：讓合約有權扣除你的 NKUST 幣 ---
+async function handleApprove() {
+    console.log("🚀 嘗試啟動授權...");
+    try {
+        // 1. 檢查有沒有安裝 MetaMask
+        if (!window.ethereum) return alert("請安裝 MetaMask！");
+
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner(); // 取得簽署者（你的錢包）
+
+        // 2. 建立代幣合約實例 (使用 erc20Abi)
+        const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
+        
+        // 3. 設定要授權的數量 (例如 100 顆)
+        const amount = ethers.utils.parseUnits("100", 18); 
+        
+        // 4. 發送交易
+        const tx = await token.approve(bikeAddr, amount);
+        alert("⏳ 授權交易已送出，請在 MetaMask 確認並等待區塊鏈完成...");
+        
+        await tx.wait(); // 等待交易確認
+        alert("✅ 授權成功！現在你可以去租車了。");
+        
+        // 5. 重新執行 init 刷新畫面按鈕狀態
+        if (typeof init === "function") await init();
+
+    } catch (e) {
+        console.error("Approve Error:", e);
+        alert("❌ 授權失敗：" + (e.reason || e.message));
+    }
+}
+
+// 確保 HTML 的 onclick 找得到它
+window.handleApprove = handleApprove;
+    
 // --- 修正後的 handleRent ---
 async function handleRent() {
     try {
