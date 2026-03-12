@@ -283,25 +283,45 @@ async function init() {
         const accounts = await provider.send("eth_requestAccounts", []);
         const user = accounts[0];
 
-        // 1. 讀取 NKUST 餘額 (使用 erc20Abi)
+        // 1. 讀取 NKUST 餘額
         const token = new ethers.Contract(nkustAddr, erc20Abi, provider);
         const bal = await token.balanceOf(user);
         const cleanBal = Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18)));
         document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
 
-        // 2. 檢查租借狀態 (使用 bikeAbi)
+        // 🌟 新增：檢查授權額度 (決定按鈕顏色與狀態)
+        const allow = await token.allowance(user, bikeAddr);
+        const appBtn = document.getElementById('approveBtn');
+        const rentBtn = document.getElementById('rentBtn');
+
+        // 判斷額度是否大於等於 20 顆 (租金10+押金10)
+        if (appBtn && allow.gte(ethers.utils.parseUnits("20", 18))) {
+            console.log("✅ 檢測到已授權");
+            appBtn.style.backgroundColor = "#198754"; // 變綠色
+            appBtn.style.color = "white";
+            appBtn.innerText = "✅ 授權已完成";
+            appBtn.disabled = true; // 鎖定按鈕
+            
+            if (rentBtn) {
+                rentBtn.disabled = false;
+                rentBtn.style.opacity = "1";
+            }
+        }
+
+        // 2. 檢查租借狀態
         const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
         const info = await bike.users(user); 
         
-        // 注意：這裡 info 的順序是 [startTime, isRented]
         if (info.isRented) {
             document.getElementById('statusBox').style.display = 'block';
             document.getElementById('emptyStatus').style.display = 'none';
             document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
             
-            // 如果在租借中，按鈕文字變更
-            const rentBtn = document.getElementById('rentBtn');
-            if (rentBtn) rentBtn.innerText = "支付租還(使用中)";
+            if (rentBtn) {
+                rentBtn.innerText = "支付租還(使用中)";
+                rentBtn.disabled = true; // 使用中就不能再點租借
+                rentBtn.style.opacity = "0.6";
+            }
         }
 
         // 3. 處理 API 資料
