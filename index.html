@@ -332,7 +332,9 @@ async function init() {
     } catch (e) {
         console.error("初始化失敗:", e);
     }
-    // 4. 🌟 定義 updateUI 函數 (可以放在 init 下方)
+    
+}
+// 4. 🌟 定義 updateUI 函數 (可以放在 init 下方)
 function updateUI(isRenting) {
     const rentBtn = document.getElementById('rentBtn');     // 借車按鈕 ID
     const returnBtn = document.getElementById('returnBtn'); // 還車按鈕 ID
@@ -349,8 +351,6 @@ function updateUI(isRenting) {
         returnBtn.style.setProperty('display', 'none', 'important');
     }
 }
-}
-
     // --- 授權功能：讓合約有權扣除你的 NKUST 幣 ---
 async function handleApprove() {
     console.log("🚀 啟動實時餘額授權");
