@@ -520,30 +520,43 @@ function calculateRealtimeEth() {
 
 async function handleBuyTokens() {
     try {
-        const buyInput = document.getElementById('buyInput');
-        const ethTax = document.getElementById('ethTax');
+        const amountToBuy = document.getElementById('buyAmount').value;
         
-        const amountToBuy = buyInput.value; // 例如 100
-        const ethToPay = ethTax.innerText; // 這就是剛剛算出來的 0.00152...
+        // 1. 檢查有沒有算好的 ETH 金額
+        if (!globalEstimatedEth || globalEstimatedEth === "0") {
+            alert("請先輸入有效的購買數量");
+            return;
+        }
 
-        console.log(`同步購買: ${amountToBuy} 枚, 支付: ${ethToPay} ETH`);
+        console.log(`🚀 準備購買: ${amountToBuy} 枚`);
+        console.log(`💰 同步支付: ${globalEstimatedEth} ETH`);
 
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
         const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
 
+        // 2. 發送交易
+        // 參數 1: amountToBuy (uint256) -> 合約會再乘 10^18
+        // 參數 2: { value: ... } -> 將算好的 ETH 字串轉為 Wei
         const tx = await token.buyTokens(amountToBuy, { 
-            value: ethers.utils.parseEther(ethToPay) 
+            value: ethers.utils.parseEther(globalEstimatedEth) 
         });
 
+        alert("⏳ 正在買幣，請稍候...");
         await tx.wait();
-        alert("✅ 購買成功！");
-        init();
+        
+        alert(`✅ 成功購買 ${amountToBuy} NKUST！`);
+        
+        // 3. 買完後執行 init() 重新整理餘額與授權按鈕顏色
+        if (typeof init === "function") await init();
+
     } catch (e) {
-        console.error(e);
-        alert("交易失敗：" + (e.reason || e.message));
+        console.error("Buy Error:", e);
+        alert("買幣失敗，原因：" + (e.reason || e.message));
     }
 }
+
+// 確保 HTML 的 onclick="handleBuyTokens()" 找得到它
 window.handleBuyTokens = handleBuyTokens;
 
 async function handleReturn() {
