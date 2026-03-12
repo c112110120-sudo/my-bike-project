@@ -283,64 +283,34 @@ async function init() {
         const accounts = await provider.send("eth_requestAccounts", []);
         const user = accounts[0];
 
-        // 1. 更新餘額 (使用專屬的 erc20Abi)
-const token = new ethers.Contract(nkustAddr, erc20Abi, provider);
-const bal = await token.balanceOf(user);
+        // 1. 讀取 NKUST 餘額 (使用 erc20Abi)
+        const token = new ethers.Contract(nkustAddr, erc20Abi, provider);
+        const bal = await token.balanceOf(user);
+        const cleanBal = Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18)));
+        document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
 
-// 改成顯示兩位小數，不要直接 Math.floor
-const formattedBal = ethers.utils.formatUnits(bal, 18);
-const displayBal = parseFloat(formattedBal).toFixed(2); // 保留兩位小數，例如 19.95
-
-const balDisplay = document.getElementById('nkustBalanceDisplay');
-if (balDisplay) {
-    balDisplay.innerText = displayBal + " NKUST";
-    
-    // 💡 額外檢查：如果餘額小於 20，把文字變紅色提醒
-    if (parseFloat(displayBal) < 20) {
-        balDisplay.style.color = "red";
-    } else {
-        balDisplay.style.color = "inherit";
-    }
-}
-
-        // 2. 檢查授權
-        const allow = await token.allowance(user, bikeAddr);
-        const minRequired = ethers.utils.parseUnits("20", 18);
-        const appBtn = document.getElementById('approveBtn');
-        const rentBtn = document.getElementById('rentBtn');
-
-        if (appBtn && rentBtn && allow.gte(minRequired)) {
-            appBtn.classList.remove('btn-outline-primary');
-            appBtn.classList.add('btn-success', 'text-white');
-            appBtn.disabled = true;
-            document.getElementById('approveIcon').innerText = "✅";
-            document.getElementById('approveText').innerText = "授權已完成";
-            rentBtn.disabled = false;
-            rentBtn.style.opacity = "1";
-            rentBtn.style.background = "linear-gradient(135deg, #0d9488, #0284c7)";
+        // 2. 檢查租借狀態 (使用 bikeAbi)
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
+        const info = await bike.users(user); 
+        
+        // 注意：這裡 info 的順序是 [startTime, isRented]
+        if (info.isRented) {
+            document.getElementById('statusBox').style.display = 'block';
+            document.getElementById('emptyStatus').style.display = 'none';
+            document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
+            
+            // 如果在租借中，按鈕文字變更
+            const rentBtn = document.getElementById('rentBtn');
+            if (rentBtn) rentBtn.innerText = "支付租還(使用中)";
         }
-    } catch (e) {
-        console.error("初始化失敗:", e); // 👈 補上這段 catch 就不會報錯了
-    }
-}
-       // --- [3. 交易處理函式] ---
 
-// --- 修正後的 handleApprove ---
-async function handleApprove() {
-    try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
-        
-        // 合約需要 20 (10租金+10押金)，我們直接授權 100 比較保險
-        const amount = ethers.utils.parseUnits("100", 18); 
-        const tx = await token.approve(bikeAddr, amount);
-        
-        alert("⏳ 授權中，請稍候...");
-        await tx.wait();
-        alert("✅ 授權成功！現在可以點擊租車了。");
-        init();
-    } catch (e) { alert("授權取消或失敗"); }
+        // 3. 處理 API 資料
+        await fetchEthPrice(); 
+        await updateWeather('Kaohsiung'); 
+
+    } catch (e) {
+        console.error("初始化失敗:", e);
+    }
 }
 // --- 修正後的 handleRent ---
 async function handleRent() {
