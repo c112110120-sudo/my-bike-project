@@ -283,8 +283,8 @@ async function init() {
         const accounts = await provider.send("eth_requestAccounts", []);
         const user = accounts[0];
 
-        // 1. 更新餘額 (精確版)
-const token = new ethers.Contract(nkustAddr, abi, provider);
+        // 1. 更新餘額 (使用專屬的 erc20Abi)
+const token = new ethers.Contract(nkustAddr, erc20Abi, provider);
 const bal = await token.balanceOf(user);
 
 // 改成顯示兩位小數，不要直接 Math.floor
@@ -349,7 +349,8 @@ async function handleRent() {
         const signer = provider.getSigner();
         const user = await signer.getAddress();
         const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
-        const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider); // 這裡要用 bikeAbi
+        const info = await bike.users(user);
 
         // 檢查餘額與授權
         const [balance, allowance] = await Promise.all([
@@ -504,9 +505,9 @@ async function handleReturn() {
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
-        const bike = new ethers.Contract(bikeAddr, abi, signer);
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider); // 這裡要用 bikeAbi
         
-        const tx = await bike.returnBike();
+            const tx = await bike.returnBike();
         alert("正在辦理歸還手續...");
         await tx.wait();
         
@@ -598,7 +599,7 @@ async function refreshAdminData() {
         if (refreshBtn) refreshBtn.innerText = "🔄 同步中...";
         
         const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const bike = new ethers.Contract(bikeAddr, abi, provider);
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider); // 這裡要用 bikeAbi
         
         // 1. 從合約抓取所有租借過的使用者地址陣列
         const userList = await bike.getAllUsers();
