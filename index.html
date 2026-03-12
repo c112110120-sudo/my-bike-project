@@ -504,16 +504,29 @@ function calculateRealtimeEth() {
 }
 
 async function handleBuyTokens() {
-    const amount = document.getElementById('buyAmount').value;
-    if (globalEstimatedEth === "0") return alert("請輸入數量");
-    try {
-        const signer = new ethers.providers.Web3Provider(window.ethereum).getSigner();
-        const tokenContract = new ethers.Contract(nkustAddr, abi, signer);
-        const tx = await tokenContract.buyTokens(amount, { value: ethers.utils.parseEther(globalEstimatedEth) });
-        await tx.wait();
-        location.reload(); 
-    } catch (err) { alert("交易失敗"); }
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        // 買幣通常是找 Token 合約
+        const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
+
+        // 假設 0.01 ETH 買一些幣，或是讓使用者輸入
+        const ethAmount = ethers.utils.parseEther("0.01"); 
+        
+        console.log("正在發送買幣請求...");
+        // 注意：buyTokens 後面通常要帶 { value: ... } 才是真的付 ETH
+        const tx = await token.buyTokens(0, { value: ethAmount }); 
+        
+        alert("⏳ 買幣請求已送出，請等待區塊鏈確認...");
+        await tx.wait();
+        alert("✅ 買幣成功！");
+        init(); // 刷新餘額
+    } catch (e) {
+        console.error("Buy Error:", e);
+        alert("買幣失敗：" + (e.reason || e.message));
+    }
 }
+window.handleBuyTokens = handleBuyTokens;
 
 async function handleReturn() {
     try {
