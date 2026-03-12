@@ -507,26 +507,32 @@ async function handleBuyTokens() {
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
-        // 買幣通常是找 Token 合約
         const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
 
-        // 假設 0.01 ETH 買一些幣，或是讓使用者輸入
-        const ethAmount = ethers.utils.parseEther("0.01"); 
+        // 🌟 設定你想買的數量（例如 100 顆）
+        const amountToBuy = ethers.utils.parseUnits("100", 18); 
         
-        console.log("正在發送買幣請求...");
-        // 注意：buyTokens 後面通常要帶 { value: ... } 才是真的付 ETH
-        const tx = await token.buyTokens(0, { value: ethAmount }); 
+        // 🌟 設定你要付出的 ETH（例如 0.01 ETH）
+        const ethValue = ethers.utils.parseEther("0.01");
+
+        console.log("🚀 發送買幣請求，數量：100");
         
-        alert("⏳ 買幣請求已送出，請等待區塊鏈確認...");
+        // 注意：buyTokens(數量, { value: 錢 })
+        const tx = await token.buyTokens(amountToBuy, { 
+            value: ethValue,
+            // 💡 如果還是估算 Gas 失敗，手動加上 limit
+            gasLimit: 150000 
+        });
+
+        alert("⏳ 買幣交易處理中...");
         await tx.wait();
         alert("✅ 買幣成功！");
-        init(); // 刷新餘額
+        init();
     } catch (e) {
-        console.error("Buy Error:", e);
-        alert("買幣失敗：" + (e.reason || e.message));
+        console.error("Buy Error Detail:", e);
+        alert("買幣失敗：可能是 ETH 不足或合約設定了最低買幣金額");
     }
 }
-window.handleBuyTokens = handleBuyTokens;
 
 async function handleReturn() {
     try {
