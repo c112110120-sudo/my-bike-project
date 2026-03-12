@@ -353,20 +353,38 @@ async function handleRent() {
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
+        const user = await signer.getAddress();
         
-        // 🌟 使用專屬的 bikeAbi
+        // 1. 檢查 NKUST 餘額
+        const token = new ethers.Contract(nkustAddr, erc20Abi, provider);
+        const bal = await token.balanceOf(user);
+        
+        // 2. 檢查授權給租車合約的額度
+        const allow = await token.allowance(user, bikeAddr);
+        
+        console.log("當前餘額:", ethers.utils.formatUnits(bal, 18));
+        console.log("當前授權:", ethers.utils.formatUnits(allow, 18));
+
+        if (bal.lt(ethers.utils.parseUnits("20", 18))) {
+            alert("錯誤：NKUST 餘額不足 20 顆！");
+            return;
+        }
+
+        if (allow.lt(ethers.utils.parseUnits("20", 18))) {
+            alert("錯誤：授權額度不足，請先點擊『授權』按鈕並等待成功。");
+            return;
+        }
+
         const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
-        const tx = await bike.rent({ gasLimit: 300000 }); // 強制給 gas 避開估算問題
-        
+        const tx = await bike.rent({ gasLimit: 200000 });
         await tx.wait();
         alert("租車成功！");
-        await init();
-    } catch (e) { 
+        
+    } catch (e) {
         console.error("Rent Error:", e);
-        alert("租車失敗！請確認餘額是否足夠。");
+        alert("交易被合約退回，請確認您是否已在租借中，或 ETH 手續費是否足夠。");
     }
 }
-
         // --- [4. 管理員功能與數據更新] ---
 
 function showAdminLogin() {
