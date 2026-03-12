@@ -315,38 +315,26 @@ async function init() {
 // --- 修正後的 handleRent ---
 async function handleRent() {
     try {
+        // 1. 取得 Provider
         const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const user = await signer.getAddress();
-        const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
-        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider); // 這裡要用 bikeAbi
-        const info = await bike.users(user);
+        
+        // 2. 🔑 關鍵：從 Provider 取得 Signer (這代表你的錢包帳號)
+        const signer = provider.getSigner(); 
 
-        // 檢查餘額與授權
-        const [balance, allowance] = await Promise.all([
-            token.balanceOf(user),
-            token.allowance(user, bikeAddr)
-        ]);
+        // 3. 建立合約實例時，最後一個參數要放 signer，而不是 provider
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
 
-        const required = ethers.utils.parseUnits("20", 18);
-
-        if (balance.lt(required)) {
-            alert(`❌ 餘額不足！你需要 20 NKUST (租金10+押金10)，目前只有 ${ethers.utils.formatUnits(balance, 18)}`);
-            return;
-        }
-
-        if (allowance.lt(required)) {
-            alert("❌ 授權額度不足 20！請先執行『授權』。");
-            return;
-        }
-
+        // 4. 正式發送交易 (現在有 signer 了，MetaMask 才會跳出來)
         const tx = await bike.rent({ gasLimit: 300000 });
+        
+        alert("⏳ 交易已送出，等待確認中...");
         await tx.wait();
         alert("✅ 租車成功！");
         location.reload();
+
     } catch (e) {
-        console.error(e);
-        alert("交易失敗，詳情請看主控台");
+        console.error("Rent Error:", e);
+        alert("錯誤：" + (e.reason || e.message));
     }
 }
  // --- [4. 管理員功能] ---
