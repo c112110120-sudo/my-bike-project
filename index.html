@@ -508,26 +508,23 @@ async function handleBuyTokens() {
         const signer = provider.getSigner();
         const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
 
-        // 🌟 重點：定義你想買的數量，這裡設為 10 顆 (18 小數位)
-        const amountToBuy = ethers.utils.parseUnits("10", 18); 
-        
-        // 🌟 如果合約買幣需要付 ETH，這裡設定 0.01 ETH
-        const ethValue = ethers.utils.parseEther("0.01");
+        // 💡 關鍵修正：合約內部會乘 10**18，所以這裡傳「整數」就好
+        const amountToBuy = 100; 
+        const ethValue = ethers.utils.parseEther("0.01"); // 支付 0.01 ETH
 
-        console.log("🚀 正式發送買幣請求，數量：10");
-        
-        // 帶入數量參數，並附加 ETH
+        console.log(`準備購買 ${amountToBuy} 顆，支付 ${ethValue} ETH`);
+
         const tx = await token.buyTokens(amountToBuy, { 
             value: ethValue 
         });
 
-        alert("⏳ 買幣請求中...");
+        alert("⏳ 正在買幣...");
         await tx.wait();
         alert("✅ 買幣成功！");
-        init(); 
+        init();
     } catch (e) {
         console.error("Buy Error:", e);
-        alert("買幣失敗：可能是數量格式不對或餘額不足。");
+        alert("買幣失敗，請看控制台錯誤訊息");
     }
 }
 window.handleBuyTokens = handleBuyTokens;
