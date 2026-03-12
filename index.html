@@ -170,14 +170,20 @@
                 <div class="row g-4 mt-2">
                     <div class="col-md-6">
                         <div class="p-4 rounded-4 border border-dashed text-center h-100 d-flex flex-column justify-content-center">
-                            <h5 class="fw-bold mb-3">操作流程</h5>
-                            <button id="approveBtn" class="btn btn-outline-primary w-100 mb-3 py-2 fw-bold" onclick="handleApprove()">
-                                <span id="approveIcon" class="me-2">🔓</span><span id="approveText">點擊完成授權</span>
-                            </button>
-                            <button id="rentBtn" class="btn btn-secondary w-100 py-3 fw-bold shadow-sm" style="opacity:0.5" disabled onclick="handleRent()">
-                            <button id="returnBtn" class="btn btn-success" onclick="handleReturnBike()" style="display: none;">我要還車</button>
-                            </button>
-                        </div>
+    <h5 class="fw-bold mb-3">操作流程</h5>
+    
+    <button id="approveBtn" class="btn btn-outline-primary w-100 mb-3 py-2 fw-bold" onclick="handleApprove()">
+        <span id="approveIcon" class="me-2">🔓</span><span id="approveText">點擊完成授權</span>
+    </button>
+    
+    <button id="rentBtn" class="btn btn-secondary w-100 py-3 fw-bold shadow-sm mb-3" style="opacity:0.5" disabled onclick="handleRent()">
+        我要借車
+    </button>
+    
+    <button id="returnBtn" class="btn btn-success w-100 py-3 fw-bold shadow-sm" onclick="handleReturnBike()" style="display: none;">
+        我要還車
+    </button>
+</div>
                     </div>
 
                     <div class="col-md-6">
@@ -290,19 +296,15 @@ async function init() {
         const cleanBal = Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18)));
         document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
 
-        // 🌟 新增：檢查授權額度 (決定按鈕顏色與狀態)
+        // 授權額度檢查... (保留你原有的代碼)
         const allow = await token.allowance(user, bikeAddr);
         const appBtn = document.getElementById('approveBtn');
         const rentBtn = document.getElementById('rentBtn');
 
-        // 判斷額度是否大於等於 20 顆 (租金10+押金10)
         if (appBtn && allow.gte(ethers.utils.parseUnits("20", 18))) {
-            console.log("✅ 檢測到已授權");
-            appBtn.style.backgroundColor = "#198754"; // 變綠色
-            appBtn.style.color = "white";
+            appBtn.style.backgroundColor = "#198754"; 
             appBtn.innerText = "✅ 授權已完成";
-            appBtn.disabled = true; // 鎖定按鈕
-            
+            appBtn.disabled = true; 
             if (rentBtn) {
                 rentBtn.disabled = false;
                 rentBtn.style.opacity = "1";
@@ -314,15 +316,16 @@ async function init() {
         const info = await bike.users(user); 
         
         if (info.isRented) {
+            // --- 狀態：租借中 ---
             document.getElementById('statusBox').style.display = 'block';
             document.getElementById('emptyStatus').style.display = 'none';
             document.getElementById('statusTime').innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
             
-            if (rentBtn) {
-                rentBtn.innerText = "支付租還(使用中)";
-                rentBtn.disabled = true; // 使用中就不能再點租借
-                rentBtn.style.opacity = "0.6";
-            }
+            // 🌟 關鍵：呼叫函數顯示「還車」按鈕
+            updateUI(true); 
+        } else {
+            // --- 狀態：未租借 ---
+            updateUI(false);
         }
 
         // 3. 處理 API 資料
@@ -332,7 +335,6 @@ async function init() {
     } catch (e) {
         console.error("初始化失敗:", e);
     }
-    
 }
 // 4. 🌟 定義 updateUI 函數 (可以放在 init 下方)
 function updateUI(isRenting) {
