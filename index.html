@@ -175,7 +175,7 @@
                                 <span id="approveIcon" class="me-2">🔓</span><span id="approveText">點擊完成授權</span>
                             </button>
                             <button id="rentBtn" class="btn btn-secondary w-100 py-3 fw-bold shadow-sm" style="opacity:0.5" disabled onclick="handleRent()">
-                                請先完成授權
+                            <button id="returnBtn" class="btn btn-success" onclick="handleReturnBike()" style="display: none;">我要還車</button>
                             </button>
                         </div>
                     </div>
@@ -332,6 +332,23 @@ async function init() {
     } catch (e) {
         console.error("初始化失敗:", e);
     }
+    // 4. 🌟 定義 updateUI 函數 (可以放在 init 下方)
+function updateUI(isRenting) {
+    const rentBtn = document.getElementById('rentBtn');     // 借車按鈕 ID
+    const returnBtn = document.getElementById('returnBtn'); // 還車按鈕 ID
+
+    if (!rentBtn || !returnBtn) return;
+
+    if (isRenting) {
+        // 正在租借：顯示還車，隱藏借車
+        rentBtn.style.setProperty('display', 'none', 'important');
+        returnBtn.style.display = 'block';
+    } else {
+        // 沒有租借：顯示借車，隱藏還車
+        rentBtn.style.display = 'block';
+        returnBtn.style.setProperty('display', 'none', 'important');
+    }
+}
 }
 
     // --- 授權功能：讓合約有權扣除你的 NKUST 幣 ---
