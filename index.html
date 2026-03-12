@@ -271,6 +271,7 @@ const bikeAbi = [
 
 // 3. 設定區
 let globalEstimatedEth = "0";
+let ethPerTwd = 0; // 存儲 1 台幣等於多少 ETH
 const ADMIN_PASSWORD = "nkust"; 
 const nkustAddr = "0x06830407ECE8DF4F534ab9191112C7286aF50156";
 const bikeAddr = "0xecE2D3BA604410A9E2464BD5c8363B2D2Fb01eE0";
@@ -428,34 +429,49 @@ function checkPassword() {
 
 
 // --- [3. 功能函數] ---
+    
 async function fetchEthPrice() {
     try {
-        // 1. 抓取美金對台幣匯率 (維持原樣，這個 API 很穩定)
         const fxRes = await fetch("https://open.er-api.com/v6/latest/USD");
         const fxData = await fxRes.json();
         currentUsdToTwd = fxData.rates.TWD; 
 
-        // 2. 🌟 換成這個 API 抓 ETH 價格 (CryptoCompare，較少 CORS 問題)
         const ethRes = await fetch("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD");
         const ethData = await ethRes.json();
-        const ethUsdPrice = ethData.USD; // 取得美金價
+        currentEthUsdPrice = ethData.USD; // 🌟 存入全域變數
 
-        // 3. 更新 UI
-        const ethDisplay = document.getElementById('ethUsdDisplay');
-        if (ethDisplay) ethDisplay.innerText = "$ " + ethUsdPrice.toLocaleString();
-
-        const ethValue = ((100 / currentUsdToTwd) / ethUsdPrice).toFixed(8);
+        // 更新上方 UI (100 TWD)
+        const ethValue = ((100 / currentUsdToTwd) / currentEthUsdPrice).toFixed(8);
         const twdToEthDisplay = document.getElementById('twdToEthDisplay');
         if (twdToEthDisplay) twdToEthDisplay.innerText = `${ethValue} ETH`;
 
-        console.log("資料更新成功！ETH:", ethUsdPrice, "USD/TWD:", currentUsdToTwd);
+        // 🌟 每次更新匯率時，也同步更新下方的購買試算
+        updatePurchaseAmount();
 
     } catch (e) {
-        console.error("匯率更新失敗，改用保底數據:", e);
-        // 如果連這個都失敗，設定一個基本值讓網頁不崩潰
-        currentUsdToTwd = 32.5;
+        console.error("匯率更新失敗", e);
     }
 }
+    function updatePurchaseAmount() {
+    const buyInput = document.getElementById('buyInput'); // 你的輸入框 ID
+    const ethTax = document.getElementById('ethTax');     // 下方紅色數字 ID
+    
+    if (!buyInput || !ethTax || currentEthUsdPrice === 0) return;
+
+    const amount = parseFloat(buyInput.value) || 0;
+
+    // 🌟 使用跟你上方完全一樣的公式：((台幣 / USD匯率) / ETH價格)
+    // 因為 1 枚 NKUST = 1 TWD，所以 amount 就是 TWD 金額
+    const neededEth = ((amount / currentUsdToTwd) / currentEthUsdPrice);
+    
+    // 顯示在下方，保留到 18 位確保精確
+    ethTax.innerText = neededEth.toFixed(18);
+}
+
+// 監聽輸入框，打字時自動算錢
+document.getElementById('buyInput').addEventListener('input', updatePurchaseAmount);
+
+    
  async function calculateRealtimeEth() {
     const amount = document.getElementById('buyAmount').value;
     const quoteElement = document.getElementById('ethQuote');
@@ -504,27 +520,28 @@ function calculateRealtimeEth() {
 
 async function handleBuyTokens() {
     try {
+        const buyInput = document.getElementById('buyInput');
+        const ethTax = document.getElementById('ethTax');
+        
+        const amountToBuy = buyInput.value; // 例如 100
+        const ethToPay = ethTax.innerText; // 這就是剛剛算出來的 0.00152...
+
+        console.log(`同步購買: ${amountToBuy} 枚, 支付: ${ethToPay} ETH`);
+
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
         const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
 
-        // 💡 關鍵修正：合約內部會乘 10**18，所以這裡傳「整數」就好
-        const amountToBuy = 100; 
-        const ethValue = ethers.utils.parseEther("0.01"); // 支付 0.01 ETH
-
-        console.log(`準備購買 ${amountToBuy} 顆，支付 ${ethValue} ETH`);
-
         const tx = await token.buyTokens(amountToBuy, { 
-            value: ethValue 
+            value: ethers.utils.parseEther(ethToPay) 
         });
 
-        alert("⏳ 正在買幣...");
         await tx.wait();
-        alert("✅ 買幣成功！");
+        alert("✅ 購買成功！");
         init();
     } catch (e) {
-        console.error("Buy Error:", e);
-        alert("買幣失敗，請看控制台錯誤訊息");
+        console.error(e);
+        alert("交易失敗：" + (e.reason || e.message));
     }
 }
 window.handleBuyTokens = handleBuyTokens;
