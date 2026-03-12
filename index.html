@@ -335,23 +335,30 @@ async function init() {
 
     // --- 授權功能：讓合約有權扣除你的 NKUST 幣 ---
 async function handleApprove() {
-    console.log("🚀 授權按鈕啟動");
+    console.log("🚀 啟動實時餘額授權");
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
+        const userAddress = await signer.getAddress(); // 獲取當前錢包地址
+        
         const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
-        
-        // 🌟 修正點 1：動態獲取代幣精度 (Decimals)
-        // 如果你的 ABI 包含 decimals()，這才是最保險的做法
-        const decimals = await token.decimals().catch(() => 18); 
-        console.log(`Token Decimals: ${decimals}`);
 
-        // 🌟 修正點 2：使用正確的精度進行轉換
-        const amount = ethers.utils.parseUnits("100", decimals);
+        // 1. 🌟 實時獲取使用者目前的餘額 (原始大數 Wei)
+        const currentBalance = await token.balanceOf(userAddress);
         
-        const tx = await token.approve(bikeAddr, amount);
-        alert("⏳ 授權處理中，請稍候...");
+        // 檢查餘額是否為 0，避免浪費 Gas
+        if (currentBalance.isZero()) {
+            alert("❌ 餘額為 0，無法授權");
+            return;
+        }
+
+        // 2. 🌟 直接使用這個實時金額進行授權
+        // 注意：這裡不需要 parseUnits，因為從合約抓回來的已經是帶精度的 BigNumber 了
+        const tx = await token.approve(bikeAddr, currentBalance);
         
+        console.log(`正在授權實時金額: ${ethers.utils.formatUnits(currentBalance, 18)} 顆`);
+        alert(`⏳ 正在授權當前全部餘額...`);
+
         await tx.wait();
         alert("✅ 授權成功！");
         await init(); 
@@ -360,7 +367,6 @@ async function handleApprove() {
         alert("授權失敗：" + (e.reason || e.message));
     }
 }
-    
 // --- 修正後的 handleRent ---
 async function handleRent() {
     try {
