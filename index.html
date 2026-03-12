@@ -473,25 +473,31 @@ document.getElementById('buyInput').addEventListener('input', updatePurchaseAmou
 
     
  async function calculateRealtimeEth() {
-    const amount = document.getElementById('buyAmount').value;
+    // 🌟 確保 ID 跟 HTML 一致：buyAmount
+    const amountInput = document.getElementById('buyAmount');
+    if (!amountInput) return;
+    
+    const amount = amountInput.value;
     const quoteElement = document.getElementById('ethQuote');
     
-    // 從畫面上抓取最新的 ETH 美金價
-    const ethUsdText = document.getElementById('ethUsdDisplay')?.innerText || "2400";
-    const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 2400;
+    // 從畫面上抓取最新的 ETH 美金價 (處理 $ 符號與逗號)
+    const ethUsdText = document.getElementById('ethUsdDisplay')?.innerText || "0";
+    const currentEthPrice = parseFloat(ethUsdText.replace(/[^0-9.]/g, '')) || 0;
 
-    if (!amount || amount <= 0) {
+    if (!amount || amount <= 0 || currentEthPrice === 0) {
         globalEstimatedEth = "0";
+        if (quoteElement) quoteElement.innerHTML = "需支付約 <span class='text-danger fw-bold'>0 ETH</span>";
         return;
     }
 
-    // 🌟 這裡使用的是已經被 fetchEthPrice 更新過的實時匯率
+    // 公式：((台幣數量 / USD匯率) / ETH美金價)
+    // 這裡假設 1 NKUST = 1 TWD
     globalEstimatedEth = ((parseFloat(amount) / currentUsdToTwd) / currentEthPrice).toFixed(15);
     
     if (quoteElement) {
         quoteElement.innerHTML = `需支付約 <span class="text-danger fw-bold">${globalEstimatedEth} ETH</span>`;
     }
-}   
+}
 
 async function updateWeather(city) {
     try {
