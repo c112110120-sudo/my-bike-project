@@ -335,37 +335,27 @@ async function init() {
 
     // --- 授權功能：讓合約有權扣除你的 NKUST 幣 ---
 async function handleApprove() {
-    console.log("🚀 嘗試啟動授權...");
+    console.log("🚀 授權按鈕啟動");
     try {
-        // 1. 檢查有沒有安裝 MetaMask
-        if (!window.ethereum) return alert("請安裝 MetaMask！");
-
         const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner(); // 取得簽署者（你的錢包）
-
-        // 2. 建立代幣合約實例 (使用 erc20Abi)
+        const signer = provider.getSigner();
         const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
         
-        // 3. 設定要授權的數量 (例如 100 顆)
-        const amount = ethers.utils.parseUnits("100", 18); 
+        // 授權 100 顆，讓 Bike 合約有權利扣除
+        const amount = ethers.utils.parseUnits("100", 18);
         
-        // 4. 發送交易
         const tx = await token.approve(bikeAddr, amount);
-        alert("⏳ 授權交易已送出，請在 MetaMask 確認並等待區塊鏈完成...");
+        alert("⏳ 授權處理中，請稍候...");
         
-        await tx.wait(); // 等待交易確認
-        alert("✅ 授權成功！現在你可以去租車了。");
-        
-        // 5. 重新執行 init 刷新畫面按鈕狀態
-        if (typeof init === "function") await init();
-
+        await tx.wait();
+        alert("✅ 授權成功！");
+        await init(); // 刷新狀態讓按鈕變色
     } catch (e) {
         console.error("Approve Error:", e);
-        alert("❌ 授權失敗：" + (e.reason || e.message));
+        alert("授權失敗：" + (e.reason || e.message));
     }
 }
-
-// 確保 HTML 的 onclick 找得到它
+// 🌟 核心：掛載到 window，讓 HTML 的 onclick 找得到
 window.handleApprove = handleApprove;
     
 // --- 修正後的 handleRent ---
@@ -509,30 +499,29 @@ async function handleBuyTokens() {
         const signer = provider.getSigner();
         const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
 
-        // 🌟 設定你想買的數量（例如 100 顆）
-        const amountToBuy = ethers.utils.parseUnits("100", 18); 
+        // 🌟 重點：定義你想買的數量，這裡設為 10 顆 (18 小數位)
+        const amountToBuy = ethers.utils.parseUnits("10", 18); 
         
-        // 🌟 設定你要付出的 ETH（例如 0.01 ETH）
+        // 🌟 如果合約買幣需要付 ETH，這裡設定 0.01 ETH
         const ethValue = ethers.utils.parseEther("0.01");
 
-        console.log("🚀 發送買幣請求，數量：100");
+        console.log("🚀 正式發送買幣請求，數量：10");
         
-        // 注意：buyTokens(數量, { value: 錢 })
+        // 帶入數量參數，並附加 ETH
         const tx = await token.buyTokens(amountToBuy, { 
-            value: ethValue,
-            // 💡 如果還是估算 Gas 失敗，手動加上 limit
-            gasLimit: 150000 
+            value: ethValue 
         });
 
-        alert("⏳ 買幣交易處理中...");
+        alert("⏳ 買幣請求中...");
         await tx.wait();
         alert("✅ 買幣成功！");
-        init();
+        init(); 
     } catch (e) {
-        console.error("Buy Error Detail:", e);
-        alert("買幣失敗：可能是 ETH 不足或合約設定了最低買幣金額");
+        console.error("Buy Error:", e);
+        alert("買幣失敗：可能是數量格式不對或餘額不足。");
     }
 }
+window.handleBuyTokens = handleBuyTokens;
 
 async function handleReturn() {
     try {
