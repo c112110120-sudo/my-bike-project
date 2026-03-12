@@ -468,9 +468,6 @@ async function fetchEthPrice() {
     ethTax.innerText = neededEth.toFixed(18);
 }
 
-// 監聽輸入框，打字時自動算錢
-document.getElementById('buyInput').addEventListener('input', updatePurchaseAmount);
-
     
  async function calculateRealtimeEth() {
     // 🌟 確保 ID 跟 HTML 一致：buyAmount
@@ -762,30 +759,42 @@ function calculateRealtimeEth() {
     // --- [5. 啟動與監聽邏輯] ---
 
     async function startApp() {
-        try {
-            // 1. 抓取基礎數據
-            if (typeof updateWeather === "function") await updateWeather('Kaohsiung'); 
-            await updatePrice();
-            
-            // 2. 初始化合約資料
-            if (typeof init === "function") {
-                await init(); 
-            }
-            
-            console.log("SmartBike 系統啟動成功");
-
-            // 3. MetaMask 監聽
-            if (window.ethereum) {
-                window.ethereum.on('accountsChanged', () => location.reload());
-                window.ethereum.on('chainChanged', () => location.reload());
-            }
-        } catch (e) {
-            console.error("啟動失敗:", e);
+    try {
+        // 1. 抓取基礎數據
+        if (typeof updateWeather === "function") await updateWeather('Kaohsiung'); 
+        await updatePrice();
+        
+        // 2. 初始化合約資料
+        if (typeof init === "function") {
+            await init(); 
         }
-    }
-    window.addEventListener('load', startApp);
-    setInterval(updatePrice, 60000);
+        
+        // 🌟 這裡加入：監聽購買金額輸入框
+        const buyInput = document.getElementById('buyAmount');
+        if (buyInput) {
+            // 當使用者在格子裡輸入數字時，自動跑 calculateRealtimeEth
+            buyInput.addEventListener('input', calculateRealtimeEth);
+            console.log("✅ 買幣換算監聽已啟動");
+        }
+        
+        console.log("SmartBike 系統啟動成功");
 
+        // 3. MetaMask 監聽
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', () => location.reload());
+            window.ethereum.on('chainChanged', () => location.reload());
+        }
+    } catch (e) {
+        console.error("啟動失敗:", e);
+    }
+}
+
+// 啟動應用程式
+window.addEventListener('load', startApp);
+// 每分鐘自動更新一次匯率
+setInterval(updatePrice, 60000);
+
+    
 </script>            
 </body>
 </html>
