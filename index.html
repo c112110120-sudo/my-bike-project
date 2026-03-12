@@ -412,6 +412,25 @@ async function handleRent() {
         alert("錯誤：" + (e.reason || e.message));
     }
 }
+    async function handleReturnBike() {
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
+
+        console.log("正在發起還車交易...");
+        const tx = await bike.returnBike(); // 呼叫智能合約的還車 function
+        
+        alert("還車交易已送出，請等待區塊鏈確認...");
+        await tx.wait(); // 等待交易完成
+        
+        alert("✅ 還車成功！");
+        await init(); // 重新整理 UI 狀態，按鈕會變回「我要借車」
+    } catch (e) {
+        console.error("還車失敗:", e);
+        alert("還車出錯: " + (e.data?.message || e.message));
+    }
+}
  // --- [4. 管理員功能] ---
 function showAdminLogin() {
     // 這裡只負責打開那個黑色登入視窗
