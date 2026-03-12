@@ -341,22 +341,25 @@ async function handleApprove() {
         const signer = provider.getSigner();
         const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
         
-        // 授權 100 顆，讓 Bike 合約有權利扣除
-        const amount = ethers.utils.parseUnits("100", 18);
+        // 🌟 修正點 1：動態獲取代幣精度 (Decimals)
+        // 如果你的 ABI 包含 decimals()，這才是最保險的做法
+        const decimals = await token.decimals().catch(() => 18); 
+        console.log(`Token Decimals: ${decimals}`);
+
+        // 🌟 修正點 2：使用正確的精度進行轉換
+        const amount = ethers.utils.parseUnits("100", decimals);
         
         const tx = await token.approve(bikeAddr, amount);
         alert("⏳ 授權處理中，請稍候...");
         
         await tx.wait();
         alert("✅ 授權成功！");
-        await init(); // 刷新狀態讓按鈕變色
+        await init(); 
     } catch (e) {
         console.error("Approve Error:", e);
         alert("授權失敗：" + (e.reason || e.message));
     }
 }
-// 🌟 核心：掛載到 window，讓 HTML 的 onclick 找得到
-window.handleApprove = handleApprove;
     
 // --- 修正後的 handleRent ---
 async function handleRent() {
