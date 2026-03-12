@@ -252,34 +252,28 @@
 
 
 <script>
-  // --- [1. 全域變數定義] ---
-  // 1. 先定義這兩個 ABI 變數
+
+    // 1. ERC20 代幣合約 ABI (NKUST Token)
 const erc20Abi = [
     "function balanceOf(address owner) view returns (uint256)",
     "function approve(address spender, uint256 amount) returns (bool)",
-    "function allowance(address owner, address spender) view returns (uint256)"
+    "function allowance(address owner, address spender) view returns (uint256)",
+    "function buyTokens(uint256 amount) payable" // 買幣功能通常在 Token 合約
 ];
 
+// 2. 腳踏車租借合約 ABI (NKUSTBike)
 const bikeAbi = [
-    "function rent() public",
-    "function returnBike() public",
-    "function users(address) view returns (uint256 startTime, bool isRented)",
+    "function rent()",
+    "function returnBike()",
+    "function users(address user) view returns (uint256 startTime, bool isRented)", // 👈 順序修正：先時間，後布林
     "function getAllUsers() view returns (address[])"
 ];
+
+// 3. 設定區
 let globalEstimatedEth = "0";
-const ADMIN_PASSWORD = "nkust"; // 👈 請設定你的管理員密碼
+const ADMIN_PASSWORD = "nkust"; 
 const nkustAddr = "0x06830407ECE8DF4F534ab9191112C7286aF50156";
 const bikeAddr = "0xecE2D3BA604410A9E2464BD5c8363B2D2Fb01eE0";
-const abi = [ 
-    "function balanceOf(address) view returns (uint256)",
-    "function allowance(address, address) view returns (uint256)",
-    "function approve(address, uint256) returns (bool)",
-    "function buyTokens(uint256) payable",
-    "function rent()",
-    "function returnBike()",
-    "function users(address) view returns (bool isRented, uint256 startTime)",
-    "function getAllUsers() view returns (address[])"
-];
 
 // --- [2. 初始化函數] ---
 async function init() {
@@ -397,55 +391,6 @@ function closeAdminLogin() {
     const modal = document.getElementById('adminModal');
     if (modal) {
         modal.style.display = 'none';
-    }
-}
-
-// --- [5. 租車支付功能] ---
-// --- 最終統一版 handleRent ---
-async function handleRent() {
-    try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const user = await signer.getAddress();
-        
-        // 🌟 確保你的腳本最上方有定義這兩個 ABI，不然會報錯
-        const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
-        const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
-
-        // 1. 進行鏈上預檢 (避免白花 Gas)
-        const [balance, allowance, status] = await Promise.all([
-            token.balanceOf(user),
-            token.allowance(user, bikeAddr),
-            bike.users(user) 
-        ]);
-
-        // 2. 邏輯攔截
-        if (status.isRented) {
-            alert("❌ 您已在租借中！請先歸還車輛。");
-            return;
-        }
-
-        if (balance.lt(ethers.utils.parseUnits("20", 18))) {
-            alert("❌ 餘額不足 20 NKUST，請先兌換！");
-            return;
-        }
-
-        if (allowance.lt(ethers.utils.parseUnits("20", 18))) {
-            alert("❌ 授權額度不足！請先點擊『授權』。");
-            return;
-        }
-
-        // 3. 正式發送交易
-        const tx = await bike.rent({ gasLimit: 300000 });
-        alert("⏳ 交易已送出，等待區塊鏈確認中...");
-        
-        await tx.wait();
-        alert("✅ 租車成功！");
-        await init(); // 觸發畫面更新
-        
-    } catch (e) {
-        console.error("Rent Error:", e);
-        alert("❌ 發生錯誤：" + (e.reason || e.message));
     }
 }
 
