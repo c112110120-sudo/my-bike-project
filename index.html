@@ -355,40 +355,172 @@ async function handleRent() {
         const signer = provider.getSigner();
         const user = await signer.getAddress();
         
-        // 1. 檢查 NKUST 餘額
-        const token = new ethers.Contract(nkustAddr, erc20Abi, provider);
-        const bal = await token.balanceOf(user);
-        
-        // 2. 檢查授權給租車合約的額度
-        const allow = await token.allowance(user, bikeAddr);
-        
-        console.log("當前餘額:", ethers.utils.formatUnits(bal, 18));
-        console.log("當前授權:", ethers.utils.formatUnits(allow, 18));
-
-        if (bal.lt(ethers.utils.parseUnits("20", 18))) {
-            alert("錯誤：NKUST 餘額不足 20 顆！");
-            return;
-        }
-
-        if (allow.lt(ethers.utils.parseUnits("20", 18))) {
-            alert("錯誤：授權額度不足，請先點擊『授權』按鈕並等待成功。");
-            return;
-        }
-
+        // 1. 建立合約實例
+        const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
         const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
-        const tx = await bike.rent({ gasLimit: 200000 });
+
+        // 2. 進行預檢 (這能防止你白花 Gas Fee)
+        const [balance, allowance, status] = await Promise.all([
+            token.balanceOf(user),
+            token.allowance(user, bikeAddr),
+            bike.users(user) // 檢查鏈上狀態
+        ]);
+
+        console.log("預檢數據：", {
+            餘額: ethers.utils.formatUnits(balance, 18),
+            授權: ethers.utils.formatUnits(allowance, 18),
+            是否租借中: status.isRented
+        });
+
+        // 3. 邏輯攔截
+        if (status.isRented) {
+            alert("❌ 偵測到您已在租借中！請先執行歸還車輛。");
+            return;
+        }
+
+        if (balance.lt(ethers.utils.parseUnits("20", 18))) {
+            alert("❌ NKUST 餘額不足 20 顆，請先買幣！");
+            return;
+        }
+
+        if (allowance.lt(ethers.utils.parseUnits("20", 18))) {
+            alert("❌ 授權額度不足！請點擊『授權』並確認交易成功後再試。");
+            return;
+        }
+
+        // 4. 正式發送交易
+        const tx = await bike.rent({ gasLimit: 300000 });
+        alert("⏳ 租車請求已送出，請等待區塊鏈確認...");
+        
         await tx.wait();
-        alert("租車成功！");
+        alert("✅ 租車成功！");
+        await init(); // 重新整理網頁畫面
         
     } catch (e) {
         console.error("Rent Error:", e);
-        alert("交易被合約退回，請確認您是否已在租借中，或 ETH 手續費是否足夠。");
+        // 如果錯誤訊息包含 "execution reverted"
+        if (e.message.includes("reverted")) {
+            alert("⚠️ 交易被合約彈回！可能是地址設定錯誤或合約條件不符。");
+        } else {
+            alert("❌ 發生未知錯誤：" + e.message);
+        }
     }
 }
         // --- [4. 管理員功能與數據更新] ---
 
 function showAdminLogin() {
-    document.getElementById('adminModal').style.display = 'flex';
+    document.async function handleRent() {
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const user = await signer.getAddress();
+        
+        // 1. 建立合約實例
+        const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
+
+        // 2. 進行預檢 (這能防止你白花 Gas Fee)
+        const [balance, allowance, status] = await Promise.all([
+            token.balanceOf(user),
+            token.allowance(user, bikeAddr),
+            bike.users(user) // 檢查鏈上狀態
+        ]);
+
+        console.log("預檢數據：", {
+            餘額: ethers.utils.formatUnits(balance, 18),
+            授權: ethers.utils.formatUnits(allowance, 18),
+            是否租借中: status.isRented
+        });
+
+        // 3. 邏輯攔截
+        if (status.isRented) {
+            alert("❌ 偵測到您已在租借中！請先執行歸還車輛。");
+            return;
+        }
+
+        if (balance.lt(ethers.utils.parseUnits("20", 18))) {
+            alert("❌ NKUST 餘額不足 20 顆，請先買幣！");
+            return;
+        }
+
+        if (allowance.lt(ethers.utils.parseUnits("20", 18))) {
+            alert("❌ 授權額度不足！請點擊『授權』並確認交易成功後再試。");
+            return;
+        }
+
+        // 4. 正式發送交易
+        const tx = await bike.rent({ gasLimit: 300000 });
+        alert("⏳ 租車請求已送出，請等待區塊鏈確認...");
+        
+        await tx.wait();
+        alert("✅ 租車成功！");
+        await init(); // 重新整理網頁畫面
+        
+    } catch (e) {
+        console.error("Rent Error:", e);
+        // 如果錯誤訊息包含 "execution reverted"
+        if (e.message.includes("reverted")) {
+            alert("⚠️ 交易被合約彈回！可能是地址設定錯誤或合約條件不符。");
+        } else {
+            alert("❌ 發生未知錯誤：" + e.message);
+        }
+    }
+}async function handleRent() {
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const user = await signer.getAddress();
+        
+        // 1. 建立合約實例
+        const token = new ethers.Contract(nkustAddr, erc20Abi, signer);
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
+
+        // 2. 進行預檢 (這能防止你白花 Gas Fee)
+        const [balance, allowance, status] = await Promise.all([
+            token.balanceOf(user),
+            token.allowance(user, bikeAddr),
+            bike.users(user) // 檢查鏈上狀態
+        ]);
+
+        console.log("預檢數據：", {
+            餘額: ethers.utils.formatUnits(balance, 18),
+            授權: ethers.utils.formatUnits(allowance, 18),
+            是否租借中: status.isRented
+        });
+
+        // 3. 邏輯攔截
+        if (status.isRented) {
+            alert("❌ 偵測到您已在租借中！請先執行歸還車輛。");
+            return;
+        }
+
+        if (balance.lt(ethers.utils.parseUnits("20", 18))) {
+            alert("❌ NKUST 餘額不足 20 顆，請先買幣！");
+            return;
+        }
+
+        if (allowance.lt(ethers.utils.parseUnits("20", 18))) {
+            alert("❌ 授權額度不足！請點擊『授權』並確認交易成功後再試。");
+            return;
+        }
+
+        // 4. 正式發送交易
+        const tx = await bike.rent({ gasLimit: 300000 });
+        alert("⏳ 租車請求已送出，請等待區塊鏈確認...");
+        
+        await tx.wait();
+        alert("✅ 租車成功！");
+        await init(); // 重新整理網頁畫面
+        
+    } catch (e) {
+        console.error("Rent Error:", e);
+        // 如果錯誤訊息包含 "execution reverted"
+        if (e.message.includes("reverted")) {
+            alert("⚠️ 交易被合約彈回！可能是地址設定錯誤或合約條件不符。");
+        } else {
+            alert("❌ 發生未知錯誤：" + e.message);
+        }
+    }
 }
 
 function closeAdminLogin() {
