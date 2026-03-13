@@ -7,19 +7,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- ethers v5 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-    <!-- WalletConnect v2 EthereumProvider -->
-    <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.2/dist/index.umd.js"></script>
 
     <style>
         body { background:#f8fafc; font-family:'Noto Sans TC',sans-serif; color:#1e293b; }
 
-        .glass {
-            background:white; border-radius:20px; padding:20px;
-            box-shadow:0 10px 15px -3px rgba(0,0,0,0.08);
-            border:1px solid #e2e8f0; margin-bottom:16px;
-        }
+        /* 頂部導覽列 */
         .top-nav {
             background:white; border-bottom:1px solid #e2e8f0;
             padding:12px 16px; position:sticky; top:0; z-index:100;
@@ -27,22 +20,25 @@
         }
         .top-nav-title { font-size:1rem; font-weight:700; color:#0369a1; }
 
-        #connectBtn {
-            background:linear-gradient(135deg,#0d9488,#0284c7);
-            color:white; border:none; font-weight:600; font-size:0.8rem;
-            padding:8px 16px; border-radius:50px; cursor:pointer;
+        /* 玻璃卡片 */
+        .glass {
+            background:white; border-radius:20px; padding:20px;
+            box-shadow:0 10px 15px -3px rgba(0,0,0,0.08);
+            border:1px solid #e2e8f0; margin-bottom:16px;
         }
-        #connectBtn.connected { background:#dcfce7; color:#166534; font-size:0.75rem; }
 
+        /* 租借狀態卡片 */
         .rental-status-card {
             background:white; border-radius:20px; border-left:5px solid #0d6efd;
             box-shadow:0 10px 15px -3px rgba(0,0,0,0.08);
-            position:relative; overflow:hidden; margin-bottom:16px;
+            position:relative; overflow:hidden; margin-bottom:16px; min-height:380px;
         }
         .rate-badge {
             position:absolute; top:0; right:0; background:#0d6efd; color:white;
-            padding:6px 14px; border-bottom-left-radius:14px; font-weight:bold; font-size:0.8rem;
+            padding:8px 16px; border-bottom-left-radius:15px; font-weight:bold; font-size:0.85rem;
         }
+
+        /* 狀態燈 */
         .status-dot {
             width:14px; height:14px; border-radius:50%;
             display:inline-block; background:#94a3b8; flex-shrink:0;
@@ -54,10 +50,17 @@
             100% { box-shadow:0 0 0 0 rgba(25,135,84,0); }
         }
 
+        /* 按鈕 */
+        .btn-approve {
+            background:#f59e0b; color:white; border:none; font-weight:600;
+            padding:10px; border-radius:50px; width:100%; font-size:0.9rem;
+            cursor:pointer; margin-bottom:8px;
+        }
+        .btn-approve:disabled { background:#cbd5e1; color:#64748b; cursor:not-allowed; }
         .btn-rent {
             background:linear-gradient(135deg,#0d9488,#0284c7);
-            color:white; border:none; font-weight:600; padding:14px;
-            border-radius:50px; width:100%; font-size:1rem; cursor:pointer;
+            color:white; border:none; font-weight:600; padding:12px;
+            border-radius:50px; width:100%; font-size:0.95rem; cursor:pointer; margin-bottom:12px;
         }
         .btn-rent:disabled { background:#cbd5e1; color:#64748b; cursor:not-allowed; }
         .btn-return {
@@ -65,21 +68,29 @@
             color:white; border:none; font-weight:600; padding:14px;
             border-radius:12px; width:100%; font-size:1rem; cursor:pointer;
         }
-        .btn-approve {
-            background:#f59e0b; color:white; border:none; font-weight:600;
-            padding:10px; border-radius:50px; width:100%; font-size:0.9rem;
-            cursor:pointer; margin-bottom:8px;
-        }
         .btn-buy {
             background:#16a34a; color:white; border:none; font-weight:600;
             padding:10px; border-radius:50px; width:100%; font-size:0.9rem; cursor:pointer;
         }
 
+        /* 手機引導卡片 */
+        .mobile-guide {
+            background:#fffbeb; border:1px solid #fcd34d; border-radius:16px;
+            padding:18px; margin-bottom:16px; display:none;
+        }
+        .btn-metamask {
+            background:#f6851b; color:white; border:none; font-weight:700;
+            padding:12px 20px; border-radius:50px; font-size:0.95rem;
+            cursor:pointer; width:100%; margin-top:10px;
+        }
+
+        /* 結算說明 */
         .settlement-box {
             background:#fff5f5; border:2px dashed #fca5a5;
             border-radius:16px; padding:20px; margin-bottom:16px;
         }
 
+        /* 管理員彈窗 */
         #adminModal {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
             background:rgba(15,23,42,0.9); z-index:9999;
@@ -91,26 +102,10 @@
         }
         #adminPanel { display:none; margin-top:30px; border-top:2px dashed #cbd5e1; padding-top:24px; }
 
-        /* WalletConnect QR Modal */
-        #wcModal {
-            display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-            background:rgba(0,0,0,0.88); z-index:10000;
-            justify-content:center; align-items:center; flex-direction:column;
-        }
-        #wcModal.show { display:flex; }
-        #wcQrBox {
-            background:white; padding:24px; border-radius:20px;
-            text-align:center; max-width:320px; width:90%;
-        }
-        #wcQrImg { width:100%; max-width:260px; }
-        .wc-hint {
-            background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px;
-            padding:12px 16px; font-size:0.82rem; color:#1d4ed8; margin-bottom:12px;
-        }
-
+        /* 手機優化 */
         @media (max-width:576px) {
             .glass { padding:16px; border-radius:16px; }
-            .rental-status-card { border-radius:16px; }
+            .rental-status-card { border-radius:16px; min-height:auto; }
             .table-responsive { font-size:0.75rem; }
         }
         .bottom-spacer { height:env(safe-area-inset-bottom,20px); }
@@ -124,17 +119,9 @@
     <span class="top-nav-title">🚲 SmartBike 租賃系統</span>
     <div class="d-flex gap-2 align-items-center">
         <button class="btn btn-sm btn-outline-secondary rounded-pill px-2" style="font-size:0.75rem;" onclick="showAdminLogin()">🔒 管理員</button>
-        <button id="connectBtn" onclick="connectWallet()">連接錢包</button>
-    </div>
-</div>
-
-<!-- WalletConnect QR Modal -->
-<div id="wcModal">
-    <div id="wcQrBox">
-        <h6 class="fw-bold mb-3">掃描 QR Code 連接錢包</h6>
-        <img id="wcQrImg" src="" alt="QR Code">
-        <p class="small text-muted mt-2">請使用 MetaMask App 或其他支援 WalletConnect 的錢包掃描</p>
-        <button class="btn btn-outline-secondary btn-sm mt-1" onclick="closeWcModal()">取消</button>
+        <button id="connectBtn" class="btn btn-sm rounded-pill px-3 fw-bold"
+            style="background:linear-gradient(135deg,#0d9488,#0284c7);color:white;border:none;font-size:0.8rem;"
+            onclick="connectWallet()">連接錢包</button>
     </div>
 </div>
 
@@ -153,15 +140,29 @@
 <!-- 主內容 -->
 <main class="container py-3 mb-4" style="max-width:900px;">
 
-    <div id="wcHint" class="wc-hint" style="display:none;">
-        <i class="bi bi-phone me-1"></i>
-        手機用戶：點「連接錢包」後，使用 MetaMask App 掃描 QR Code 即可連線。
+    <!-- 手機引導（一般瀏覽器偵測到時顯示） -->
+    <div class="mobile-guide" id="mobileGuide">
+        <div class="d-flex gap-3 align-items-start">
+            <span style="font-size:2rem;">🦊</span>
+            <div>
+                <div class="fw-bold mb-1">手機用戶請注意</div>
+                <div class="small text-muted mb-1">
+                    手機瀏覽器（Safari、Chrome）無法直接連接錢包。<br>
+                    請改用 <strong>MetaMask App 內建瀏覽器</strong>開啟此網頁，即可正常使用所有功能。
+                </div>
+                <button class="btn-metamask" onclick="openInMetaMask()">
+                    🦊 用 MetaMask App 開啟
+                </button>
+            </div>
+        </div>
     </div>
 
     <div class="row g-3">
 
-        <!-- 左欄 -->
+        <!-- 左欄：資訊 + 錢包 -->
         <div class="col-lg-4 col-md-5">
+
+            <!-- 即時資訊 -->
             <div class="glass" style="font-size:0.9rem;">
                 <div class="d-flex align-items-center mb-2">
                     <span class="me-2">📍</span>
@@ -190,6 +191,7 @@
                 </div>
             </div>
 
+            <!-- 錢包 + 購幣 -->
             <div class="glass">
                 <div class="text-center mb-3">
                     <div class="small text-muted mb-1">💳 我的錢包資產</div>
@@ -198,7 +200,7 @@
                     <div id="walletAddr" class="text-muted mt-1" style="font-size:0.7rem; word-break:break-all;"></div>
                 </div>
                 <button id="approveBtn" class="btn-approve" onclick="handleApprove()">🔑 授權合約使用 NKUST</button>
-                <button id="rentBtn" class="btn-rent mb-3" onclick="handleRent()" disabled>🚲 我要借車</button>
+                <button id="rentBtn" class="btn-rent" onclick="handleRent()" disabled>🚲 我要借車</button>
                 <hr class="my-2">
                 <div class="input-group input-group-sm mb-2">
                     <span class="input-group-text">購買量</span>
@@ -209,17 +211,17 @@
             </div>
         </div>
 
-        <!-- 右欄 -->
+        <!-- 右欄：租借狀態 -->
         <div class="col-lg-8 col-md-7">
             <div class="rental-status-card">
                 <span class="rate-badge">費率: 20 NKUST / 次</span>
                 <div class="p-4">
-                    <h5 class="fw-bold mb-4 text-secondary" style="padding-right:120px;">
+                    <h5 class="fw-bold mb-4 text-secondary" style="padding-right:130px;">
                         <i class="bi bi-bicycle me-2"></i>當前租借狀態
                     </h5>
                     <div class="d-flex align-items-center gap-2 mb-4">
                         <span id="statusDot" class="status-dot"></span>
-                        <h3 id="statusText" class="m-0 fw-bold text-secondary" style="font-size:1.3rem;">尚未連接錢包</h3>
+                        <h3 id="statusText" class="m-0 fw-bold text-secondary" style="font-size:1.2rem;">尚未連接錢包</h3>
                     </div>
                     <div class="mb-4">
                         <p class="text-muted fw-bold mb-1" style="font-size:0.9rem;">起租時間：</p>
@@ -310,113 +312,67 @@ const ADMIN_PASSWORD  = "nkust";
 const nkustAddr       = "0x826f67ce00E5b17450E67Ed2b227320A2E470d8E";
 const bikeAddr        = "0xB59aC4c27fC2E5D231C7D3497245CF3841A28851";
 const WEATHER_API_KEY = "db68851cff88bbfaf24ddcefbccb2a18";
-const WC_PROJECT_ID   = "f0c926bc39c41f7d745142e2b80c0817";
 
 let globalEstimatedEth = "0";
 let currentUsdToTwd    = 32.5;
 let currentEthUsdPrice = 0;
-let web3Provider       = null;
-let wcEthProvider      = null;
 
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// ===== 裝置判斷 =====
+const isMobile        = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isMetaMaskApp   = navigator.userAgent.includes('MetaMaskMobile');
+const hasEthereum     = typeof window.ethereum !== 'undefined';
+
+// ===== 手機引導：在 MetaMask App 內開啟 =====
+function openInMetaMask() {
+    // 拿掉 https:// 讓 deep link 正確
+    const url = window.location.href.replace(/^https?:\/\//, '');
+    window.location.href = 'https://metamask.app.link/dapp/' + url;
+}
 
 // ===== 連接錢包 =====
 async function connectWallet() {
-    try {
-        if (!isMobile && window.ethereum) {
-            await connectMetaMask();
+    if (!hasEthereum) {
+        if (isMobile) {
+            // 手機但不在 MetaMask App 裡
+            openInMetaMask();
         } else {
-            await connectWalletConnect();
+            alert("❌ 未偵測到 MetaMask，請先安裝 MetaMask 擴充功能。\nhttps://metamask.io");
         }
+        return;
+    }
+    try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        await init(provider);
     } catch (e) {
         console.error("連接失敗:", e);
         alert("連接錢包失敗：" + (e.message || e));
     }
 }
 
-async function connectMetaMask() {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    web3Provider = provider;
-    await init();
-}
-
-async function connectWalletConnect() {
-    // 確認 SDK 是否載入
-    const WCProvider = window.WalletConnectEthereumProvider || window["@walletconnect/ethereum-provider"];
-    if (!WCProvider || !WCProvider.init) {
-        // Fallback：MetaMask App deep link
-        const host = window.location.host + window.location.pathname;
-        if (confirm("建議用 MetaMask App 開啟此網頁。\n點確定前往 MetaMask App")) {
-            window.location.href = `https://metamask.app.link/dapp/${host}`;
-        }
-        return;
-    }
-
-    wcEthProvider = await WCProvider.init({
-        projectId: WC_PROJECT_ID,
-        chains: [1],
-        showQrModal: false,
-        metadata: {
-            name: "SmartBike",
-            description: "高科幣校園租賃系統",
-            url: window.location.origin,
-            icons: []
-        }
-    });
-
-    wcEthProvider.on("display_uri", (uri) => showQrCode(uri));
-    wcEthProvider.on("connect",     async () => {
-        closeWcModal();
-        web3Provider = new ethers.providers.Web3Provider(wcEthProvider);
-        await init();
-    });
-    wcEthProvider.on("disconnect",  () => {
-        web3Provider = null;
-        wcEthProvider = null;
-        updateConnectBtn(null);
-    });
-
-    await wcEthProvider.connect();
-}
-
-// ===== QR Code =====
-function showQrCode(uri) {
-    const qrUrl = `https://chart.googleapis.com/chart?chs=260x260&cht=qr&chl=${encodeURIComponent(uri)}`;
-    document.getElementById('wcQrImg').src = qrUrl;
-    document.getElementById('wcModal').classList.add('show');
-}
-function closeWcModal() {
-    document.getElementById('wcModal').classList.remove('show');
-}
-
-// ===== 連接按鈕外觀 =====
-function updateConnectBtn(address) {
-    const btn = document.getElementById('connectBtn');
-    if (address) {
-        btn.innerText = "✅ " + address.substring(0, 6) + "..." + address.substring(address.length - 4);
-        btn.classList.add('connected');
-        document.getElementById('walletAddr').innerText = address;
-    } else {
-        btn.innerText = "連接錢包";
-        btn.classList.remove('connected');
-        document.getElementById('walletAddr').innerText = "";
-    }
-}
-
 // ===== 初始化 =====
-async function init() {
-    if (!web3Provider) return;
-    try {
-        const signer   = web3Provider.getSigner();
-        const user     = await signer.getAddress();
-        updateConnectBtn(user);
+async function init(provider) {
+    provider = provider || (hasEthereum ? new ethers.providers.Web3Provider(window.ethereum) : null);
+    if (!provider) return;
 
-        const token    = new ethers.Contract(nkustAddr, erc20Abi, web3Provider);
+    try {
+        const signer   = provider.getSigner();
+        const user     = await signer.getAddress();
+
+        // 更新連接按鈕
+        const btn = document.getElementById('connectBtn');
+        btn.innerText = "✅ " + user.substring(0,6) + "..." + user.substring(user.length-4);
+        btn.style.background = "#dcfce7";
+        btn.style.color = "#166534";
+        document.getElementById('walletAddr').innerText = user;
+
+        // 餘額
+        const token    = new ethers.Contract(nkustAddr, erc20Abi, provider);
         const bal      = await token.balanceOf(user);
         const cleanBal = Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18)));
         document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
 
+        // 授權
         const allow   = await token.allowance(user, bikeAddr);
         const appBtn  = document.getElementById('approveBtn');
         const rentBtn = document.getElementById('rentBtn');
@@ -428,7 +384,8 @@ async function init() {
             rentBtn.style.opacity = "1";
         }
 
-        const bike = new ethers.Contract(bikeAddr, bikeAbi, web3Provider);
+        // 租借狀態
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
         const info = await bike.users(user);
 
         const statusText = document.getElementById('statusText');
@@ -451,6 +408,10 @@ async function init() {
             statusTime.innerText       = "--";
             updateUI(false);
         }
+
+        // 儲存 provider 供其他函數使用
+        window._provider = provider;
+
     } catch (e) { console.error("初始化失敗:", e); }
 }
 
@@ -461,11 +422,17 @@ function updateUI(isRenting) {
     if (r) r.style.display = isRenting ? 'none' : 'block';
 }
 
+function getProvider() {
+    if (window._provider) return window._provider;
+    if (!hasEthereum) { alert("請先連接錢包"); return null; }
+    return new ethers.providers.Web3Provider(window.ethereum);
+}
+
 // ===== 合約操作 =====
 async function handleApprove() {
-    if (!web3Provider) { alert("請先連接錢包"); return; }
+    const provider = getProvider(); if (!provider) return;
     try {
-        const signer  = web3Provider.getSigner();
+        const signer  = provider.getSigner();
         const user    = await signer.getAddress();
         const token   = new ethers.Contract(nkustAddr, erc20Abi, signer);
         const balance = await token.balanceOf(user);
@@ -474,52 +441,52 @@ async function handleApprove() {
         alert("⏳ 正在授權...");
         await tx.wait();
         alert("✅ 授權成功！");
-        await init();
+        await init(provider);
     } catch (e) { alert("授權失敗：" + (e.reason || e.message)); }
 }
 
 async function handleRent() {
-    if (!web3Provider) { alert("請先連接錢包"); return; }
+    const provider = getProvider(); if (!provider) return;
     try {
-        const signer = web3Provider.getSigner();
+        const signer = provider.getSigner();
         const bike   = new ethers.Contract(bikeAddr, bikeAbi, signer);
         const tx     = await bike.rent({ gasLimit: 300000 });
         alert("⏳ 交易已送出，等待確認...");
         await tx.wait();
         alert("✅ 租車成功！");
-        await init();
+        await init(provider);
     } catch (e) { alert("錯誤：" + (e.reason || e.message)); }
 }
 
 async function handleReturnBike() {
-    if (!web3Provider) { alert("請先連接錢包"); return; }
+    const provider = getProvider(); if (!provider) return;
     try {
-        const signer = web3Provider.getSigner();
+        const signer = provider.getSigner();
         const bike   = new ethers.Contract(bikeAddr, bikeAbi, signer);
         const tx     = await bike.returnBike();
         alert("還車交易已送出...");
         await tx.wait();
         alert("✅ 還車成功！");
-        await init();
+        await init(provider);
     } catch (e) { alert("還車出錯：" + (e.data?.message || e.message)); }
 }
 
 async function handleBuyTokens() {
-    if (!web3Provider) { alert("請先連接錢包"); return; }
+    const provider = getProvider(); if (!provider) return;
     const amountToBuy = document.getElementById('buyAmount').value;
     if (!globalEstimatedEth || globalEstimatedEth === "0") { alert("請先輸入有效購買數量"); return; }
     try {
-        const signer = web3Provider.getSigner();
+        const signer = provider.getSigner();
         const token  = new ethers.Contract(nkustAddr, erc20Abi, signer);
         const tx     = await token.buyTokens(amountToBuy, { value: ethers.utils.parseEther(globalEstimatedEth) });
         alert("⏳ 正在買幣...");
         await tx.wait();
         alert("✅ 成功購買 " + amountToBuy + " NKUST！");
-        await init();
+        await init(provider);
     } catch (e) { alert("買幣失敗：" + (e.reason || e.message)); }
 }
 
-// ===== 換算 / 匯率 / 天氣 =====
+// ===== 換算 =====
 function calculateRealtimeEth() {
     const amount  = parseFloat(document.getElementById('buyAmount')?.value) || 0;
     const quoteEl = document.getElementById('ethQuote');
@@ -533,6 +500,7 @@ function calculateRealtimeEth() {
     quoteEl.innerHTML = `需支付約 <span class="text-danger fw-bold">${globalEstimatedEth} ETH</span>`;
 }
 
+// ===== 匯率 =====
 async function fetchEthPrice() {
     try {
         const fxRes  = await fetch("https://open.er-api.com/v6/latest/USD");
@@ -549,6 +517,7 @@ async function fetchEthPrice() {
     } catch (e) { console.error("匯率更新失敗"); }
 }
 
+// ===== 天氣 =====
 async function updateWeather(city) {
     try {
         const res  = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${WEATHER_API_KEY}&units=metric&lang=zh_tw`);
@@ -571,11 +540,11 @@ function checkPassword() {
 }
 
 async function refreshAdminData() {
-    if (!web3Provider) { alert("請先連接錢包"); return; }
+    const provider = getProvider(); if (!provider) return;
     const btn = document.querySelector('button[onclick="refreshAdminData()"]');
     if (btn) btn.innerText = "🔄 同步中...";
     try {
-        const bike     = new ethers.Contract(bikeAddr, bikeAbi, web3Provider);
+        const bike     = new ethers.Contract(bikeAddr, bikeAbi, provider);
         const userList = await bike.getAllUsers();
         const tbody    = document.getElementById('adminTableBody');
         if (!tbody) return;
@@ -602,16 +571,21 @@ async function refreshAdminData() {
 
 // ===== 啟動 =====
 async function startApp() {
-    if (isMobile) document.getElementById('wcHint').style.display = 'block';
     await updateWeather('Kaohsiung');
     await fetchEthPrice();
     document.getElementById('buyAmount')?.addEventListener('input', calculateRealtimeEth);
-    if (!isMobile && window.ethereum) {
+
+    if (isMobile && !hasEthereum) {
+        // 手機上沒有 MetaMask App，顯示引導
+        document.getElementById('mobileGuide').style.display = 'block';
+    } else if (hasEthereum) {
+        // 有 ethereum（桌機 MetaMask 或 MetaMask App 內建瀏覽器）
+        // 若已有授權帳號，自動連線
         try {
             const accounts = await window.ethereum.request({ method:'eth_accounts' });
             if (accounts.length > 0) {
-                web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-                await init();
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await init(provider);
             }
         } catch (e) {}
         window.ethereum.on('accountsChanged', () => location.reload());
