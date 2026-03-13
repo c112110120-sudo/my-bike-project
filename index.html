@@ -62,9 +62,34 @@
         .btn-main:active { transform: scale(0.98); }
         .btn-main:disabled { background: #cbd5e1; color: #64748b; }
         /* --- 總體佈局修正 --- */
-.container {
-    max-width: 600px; /* 限制寬度，更像 APP 的感覺 */
+/* --- 總體佈局修正 --- */
+/* 刪除原本的 .container { max-width: 600px; } */
+
+.main-layout {
+    max-width: 1200px; /* 放大總寬度，確保左右放得下 */
     margin: 0 auto;
+    padding: 20px;
+}
+
+/* 確保左側兩張小卡片寬度一致 */
+.left-info-area .glass, .left-info-area .info-card {
+    width: 100%;
+    min-width: 280px; /* 設定最小寬度，防止文字擠壓 */
+}
+
+/* 讓右側大卡片撐滿剩餘空間 */
+.right-main-area {
+    flex: 1;
+}
+
+/* 修正卡片高度對齊 */
+.rental-status-card {
+    height: 100%; /* 讓它跟左邊兩塊加起來一樣高 */
+    min-height: 400px;
+    background: #ffffff;
+    border-radius: 20px;
+    border-left: 8px solid #0d6efd; /* 藍色邊條 */
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
 }
 
 /* --- 當前租借狀態卡片美化 --- */
