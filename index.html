@@ -38,6 +38,93 @@
         }
         .btn-main:active { transform: scale(0.98); }
         .btn-main:disabled { background: #cbd5e1; color: #64748b; }
+        /* --- 總體佈局修正 --- */
+.container {
+    max-width: 600px; /* 限制寬度，更像 APP 的感覺 */
+    margin: 0 auto;
+}
+
+/* --- 當前租借狀態卡片美化 --- */
+.rental-status-card {
+    background: #ffffff;
+    border-radius: 20px;
+    border: none;
+    position: relative; /* 給右上角標籤定位用 */
+    overflow: hidden; /* 確保內容不超出圓角 */
+    border-left: 5px solid #0d6efd; /* 左側藍色線條，像截圖一樣 */
+    transition: transform 0.2s; /* 增加滑鼠移過的效果 */
+}
+
+.rental-status-card:hover {
+    transform: translateY(-5px); /* 輕微浮起 */
+}
+
+/* 費率標籤美化 */
+.rate-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: #0d6efd;
+    color: white;
+    padding: 8px 16px;
+    border-bottom-left-radius: 15px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 狀態指示燈閃爍動畫 */
+.status-indicator {
+    gap: 12px;
+}
+
+.status-dot {
+    width: 15px;
+    height: 15px;
+    background-color: #198754; /* 綠色 */
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.pulsing-dot {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(25, 135, 84, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+    }
+}
+
+/* 起租時間文字修正 */
+.time-info p {
+    margin-bottom: 5px;
+}
+
+/* --- 結算說明區塊美化 --- */
+.settlement-info-box {
+    margin-top: 30px; /* 🌟 核心修正：跟上方卡片拉開距離 */
+}
+
+/* 虛線邊框美化 */
+.border-dashed {
+    border: 2px dashed #dc3545; /* 紅色虛線 */
+    border-color: #dc3545 !important;
+}
+
+/* 將原本重疊的圖片移開，用 Alert 提示代替 */
+#noRentalInfo {
+    margin-top: 15px;
+}
+
+/* --- Bootstrap 圖示修正 (如果沒引用，請加入 Bootstrap Icons) --- */
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css");
 
         /* 還車按鈕樣式 */
         .btn-return {
@@ -160,50 +247,51 @@
             </div>
         </div>
 
-        <div class="col-lg-9 col-md-8">
-            <div class="glass p-4 mb-4" style="min-height: 400px;">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="fw-bold m-0">🚲 單車租賃控制台</h4>
-                    <span class="badge bg-primary rounded-pill px-3 py-2">費率: 20 NKUST / 次</span>
-                </div>
-
-                <div class="row g-4 mt-2">
-                    <div class="col-md-6">
-                        <div class="p-4 rounded-4 border border-dashed text-center h-100 d-flex flex-column justify-content-center">
-    <h5 class="fw-bold mb-3">操作流程</h5>
+        <div class="container my-5">
     
-    <button id="approveBtn" class="btn btn-outline-primary w-100 mb-3 py-2 fw-bold" onclick="handleApprove()">
-        <span id="approveIcon" class="me-2">🔓</span><span id="approveText">點擊完成授權</span>
-    </button>
-    
-    <button id="rentBtn" class="btn btn-secondary w-100 py-3 fw-bold shadow-sm mb-3" style="opacity:0.5" disabled onclick="handleRent()">
-        我要借車
-    </button>
-    
-    <button id="returnBtn" class="btn btn-success w-100 py-3 fw-bold shadow-sm" onclick="handleReturnBike()" style="display: none;">
-        我要還車
-    </button>
-</div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <div id="statusBox" class="p-4 rounded-4 bg-light h-100" style="display:none; border-left: 5px solid #0d6efd;">
-                            <h6 class="text-muted mb-2">當前租借狀態</h6>
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="spinner-grow text-success spinner-grow-sm me-2"></div>
-                                <span class="fw-bold text-success">使用中 (Renting)</span>
-                            </div>
-                            <div class="small text-muted mb-1">起租時間：</div>
-                            <div id="statusTime" class="fw-bold mb-3">--</div>
-                        </div>
-                        <div id="emptyStatus" class="p-4 rounded-4 bg-light h-100 d-flex flex-column justify-content-center align-items-center text-muted">
-                            <span class="fs-1">🚲</span>
-                            <p class="mt-2 mb-0">目前沒有租借中的車輛</p>
-                        </div>
-                    </div>
-                </div>
+    <div class="rental-status-card mb-4 shadow">
+        <span class="rate-badge">費率: 20 NKUST / 次</span>
+        
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-4 text-secondary">
+                <i class="bi bi-bicycle me-2"></i>當前租借狀態
+            </h5>
+            
+            <div class="status-indicator d-flex align-items-center mb-4">
+                <span class="status-dot pulsing-dot"></span>
+                <h2 class="status-text m-0 text-success fw-bold">使用中 (Renting)</h2>
             </div>
+            
+            <div class="time-info text-muted">
+                <p class="mb-1 fw-bold">起租時間：</p>
+                <p id="statusTime" class="h5 text-dark fw-bold">2026/3/13 上午9:14:24</p>
+            </div>
+            
+            <div class="mt-4">
+                <button id="returnBtn" class="btn btn-danger w-100 py-3 fw-bold rounded-3 shadow-sm" onclick="handleReturnBike()">
+                    我要還車 (Return Bike)
+                </button>
+            </div>
+        </div>
+    </div>
 
+    <div class="settlement-info-box p-4 rounded-4 border-dashed bg-light">
+        <h5 class="fw-bold text-danger mb-4">與資產結算說明</h5>
+        
+        <div class="info-item d-flex align-items-start mb-3">
+            <i class="bi bi-lightning-fill text-warning h3 me-3 mt-1"></i>
+            <div>
+                <h6 class="fw-bold mb-1">智能合約即時退費</h6>
+                <p class="text-muted mb-0">歸還後，<span class="fw-bold text-success">10 NKUST</span> 押金將立即原路退回錢包。</p>
+            </div>
+        </div>
+        
+        <div id="noRentalInfo" class="alert alert-info py-2 px-3 mt-3 text-center" style="display: none;">
+             <i class="bi bi-info-circle me-2"></i>目前沒有租借中的車輛
+        </div>
+    </div>
+
+</div>
             <div class="p-4 rounded-4" style="background: #fff5f5; border: 1px dashed #feb2b2;">
                 <h5 class="fw-bold text-danger text-center mb-4">🚲 歸還手續與資產結算說明</h5>
                 <div class="row row-cols-1 row-cols-md-2 g-4">
