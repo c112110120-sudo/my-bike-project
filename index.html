@@ -25,6 +25,29 @@
             border: 1px solid #e2e8f0; 
             margin-bottom: 20px; 
         }
+        /* --- 總體佈局修正 --- */
+.main-content-container {
+    padding: 20px;
+    gap: 20px;
+}
+
+/* --- 左側資訊卡片區域修正 --- */
+.left-info-area {
+    width: auto; /* 讓容器寬度根據卡片內容自適應 */
+}
+
+/* --- 單張資訊卡片美化與對齊 --- */
+.info-card {
+    background: #ffffff;
+    border-radius: 15px;
+    border: none;
+    padding: 15px;
+    transition: transform 0.2s; /* 增加滑鼠移過的效果 */
+}
+
+.info-card:hover {
+    transform: translateY(-5px); /* 輕微浮起 */
+}
 
         /* 主按鈕樣式 - 租借 */
         .btn-main { 
@@ -198,9 +221,8 @@
 <main class="container mb-5">
     <h1 class="text-center fw-bold mb-5" style="color: #0369a1;">🚲 SmartBike 租賃系統</h1>
     
-    <div class="row">
-        <div class="col-lg-3 col-md-4">
-            <div class="glass p-3 mb-3" style="font-size: 0.9rem;">
+    <div class="row g-4"> <div class="col-lg-4 col-md-5">
+            <div class="glass p-3 mb-3 shadow-sm" style="font-size: 0.9rem;">
                 <div class="d-flex align-items-center mb-2">
                     <span class="fs-5 me-2">📍</span>
                     <h6 class="fw-bold m-0">即時資訊</h6>
@@ -228,7 +250,7 @@
                 </div>
             </div>
 
-            <div class="glass p-3 mb-3">
+            <div class="glass p-3 mb-3 shadow-sm">
                 <div class="text-center mb-3">
                     <div class="small text-muted mb-1">💳 我的錢包資產</div>
                     <h4 id="nkustBalanceDisplay" class="fw-bold text-primary mb-0">0 NKUST</h4>
@@ -247,32 +269,33 @@
             </div>
         </div>
 
-        <div class="container my-5">
-    
-    <div class="rental-status-card mb-4 shadow">
-        <span class="rate-badge">費率: 20 NKUST / 次</span>
-        
-        <div class="card-body p-4">
-            <h5 class="fw-bold mb-4 text-secondary">
-                <i class="bi bi-bicycle me-2"></i>當前租借狀態
-            </h5>
-            
-            <div class="status-indicator d-flex align-items-center mb-4">
-                <span class="status-dot pulsing-dot"></span>
-                <h2 class="status-text m-0 text-success fw-bold">使用中 (Renting)</h2>
-            </div>
-            
-            <div class="time-info text-muted">
-                <p class="mb-1 fw-bold">起租時間：</p>
-                <p id="statusTime" class="h5 text-dark fw-bold">2026/3/13 上午9:14:24</p>
-            </div>
-            
-            <div class="mt-4">
-                <button id="returnBtn" class="btn btn-danger w-100 py-3 fw-bold rounded-3 shadow-sm" onclick="handleReturnBike()">
-                    我要還車 (Return Bike)
-                </button>
+        <div class="col-lg-8 col-md-7">
+            <div id="statusBox" class="rental-status-card shadow h-100">
+                <span class="rate-badge">費率: 20 NKUST / 次</span>
+                
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4 text-secondary">
+                        <i class="bi bi-bicycle me-2"></i>當前租借狀態
+                    </h5>
+                    
+                    <div class="status-indicator d-flex align-items-center mb-4">
+                        <span class="status-dot pulsing-dot"></span>
+                        <h2 class="status-text m-0 text-success fw-bold">使用中 (Renting)</h2>
+                    </div>
+                    
+                    <div class="time-info text-muted mb-5">
+                        <p class="mb-1 fw-bold">起租時間：</p>
+                        <p id="statusTime" class="h5 text-dark fw-bold">--</p>
+                    </div>
+                    
+                    <div class="mt-auto"> <button id="returnBtn" class="btn btn-danger w-100 py-3 fw-bold rounded-3 shadow-sm" onclick="handleReturnBike()">
+                            我要還車 (Return Bike)
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
+        
     </div>
 
     <div class="settlement-info-box p-4 rounded-4 border-dashed bg-light">
