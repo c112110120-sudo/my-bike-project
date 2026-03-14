@@ -8,87 +8,117 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-
     <style>
         body { background:#f8fafc; font-family:'Noto Sans TC',sans-serif; color:#1e293b; }
 
         /* 頂部導覽列 */
         .top-nav {
             background:white; border-bottom:1px solid #e2e8f0;
-            padding:12px 16px; position:sticky; top:0; z-index:100;
+            padding:12px 20px; position:sticky; top:0; z-index:100;
             display:flex; justify-content:space-between; align-items:center;
         }
         .top-nav-title { font-size:1rem; font-weight:700; color:#0369a1; }
 
-        /* 玻璃卡片 */
+        /* 卡片 */
         .glass {
-            background:white; border-radius:20px; padding:20px;
-            box-shadow:0 10px 15px -3px rgba(0,0,0,0.08);
+            background:white; border-radius:16px; padding:20px;
+            box-shadow:0 4px 16px rgba(0,0,0,0.06);
             border:1px solid #e2e8f0; margin-bottom:16px;
         }
 
-        /* 租借狀態卡片 */
-        .rental-status-card {
-            background:white; border-radius:20px; border-left:5px solid #0d6efd;
-            box-shadow:0 10px 15px -3px rgba(0,0,0,0.08);
-            position:relative; overflow:hidden; margin-bottom:16px; min-height:380px;
+        /* 腳踏車格子 */
+        .bikes-grid {
+            display:grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap:12px; margin-top:8px;
         }
-        .rate-badge {
-            position:absolute; top:0; right:0; background:#0d6efd; color:white;
-            padding:8px 16px; border-bottom-left-radius:15px; font-weight:bold; font-size:0.85rem;
+        .bike-tile {
+            background:#f8fafc; border:2px solid #e2e8f0;
+            border-radius:12px; padding:14px 10px;
+            text-align:center; cursor:pointer;
+            transition:all 0.2s; position:relative;
         }
+        .bike-tile:hover:not(.rented) {
+            border-color:#0d9488;
+            box-shadow:0 0 0 3px rgba(13,148,136,0.12);
+            transform:translateY(-2px);
+        }
+        .bike-tile.selected {
+            border-color:#0d6efd;
+            background:#eff6ff;
+            box-shadow:0 0 0 3px rgba(13,110,253,0.15);
+        }
+        .bike-tile.rented {
+            background:#fef2f2; border-color:#fca5a5; cursor:not-allowed; opacity:0.7;
+        }
+        .bike-tile.mine {
+            background:#f0fdf4; border-color:#22c55e;
+        }
+        .bike-emoji { font-size:2rem; margin-bottom:6px; }
+        .bike-id { font-size:0.75rem; font-weight:700; color:#475569; }
+        .bike-status-badge {
+            font-size:0.65rem; font-weight:700; padding:2px 8px;
+            border-radius:20px; margin-top:4px; display:inline-block;
+        }
+        .badge-free { background:#dcfce7; color:#166534; }
+        .badge-rented { background:#fee2e2; color:#991b1b; }
+        .badge-mine { background:#bbf7d0; color:#14532d; }
 
-        /* 狀態燈 */
-        .status-dot {
-            width:14px; height:14px; border-radius:50%;
-            display:inline-block; background:#94a3b8; flex-shrink:0;
+        /* 費率計時器 */
+        .fee-timer {
+            background:linear-gradient(135deg,#0d2035,#0d3d5e);
+            border-radius:16px; padding:20px; color:white; margin-bottom:16px;
         }
-        .pulsing-dot { animation:pulse 1.5s infinite; }
-        @keyframes pulse {
-            0%   { box-shadow:0 0 0 0 rgba(25,135,84,0.7); }
-            70%  { box-shadow:0 0 0 10px rgba(25,135,84,0); }
-            100% { box-shadow:0 0 0 0 rgba(25,135,84,0); }
+        .fee-timer-label { font-size:0.75rem; opacity:0.7; margin-bottom:4px; }
+        .fee-timer-value { font-size:2rem; font-weight:700; color:#00d4b8; }
+        .fee-timer-sub { font-size:0.8rem; opacity:0.6; margin-top:4px; }
+        .fee-progress { height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin-top:12px; }
+        .fee-progress-bar { height:100%; background:#00d4b8; border-radius:3px; transition:width 1s; }
+
+        /* 付款選擇 */
+        .pay-tabs { display:flex; gap:8px; margin-bottom:12px; }
+        .pay-tab {
+            flex:1; padding:10px; border:2px solid #e2e8f0;
+            border-radius:10px; text-align:center; cursor:pointer;
+            font-size:0.85rem; font-weight:600; transition:all 0.2s;
+            background:white;
+        }
+        .pay-tab.active {
+            border-color:#0d6efd; background:#eff6ff; color:#0d6efd;
         }
 
         /* 按鈕 */
-        .btn-approve {
-            background:#f59e0b; color:white; border:none; font-weight:600;
-            padding:10px; border-radius:50px; width:100%; font-size:0.9rem;
-            cursor:pointer; margin-bottom:8px;
-        }
-        .btn-approve:disabled { background:#cbd5e1; color:#64748b; cursor:not-allowed; }
         .btn-rent {
             background:linear-gradient(135deg,#0d9488,#0284c7);
-            color:white; border:none; font-weight:600; padding:12px;
-            border-radius:50px; width:100%; font-size:0.95rem; cursor:pointer; margin-bottom:12px;
+            color:white; border:none; font-weight:700;
+            padding:14px; border-radius:50px; width:100%;
+            font-size:1rem; cursor:pointer; transition:all 0.2s;
+            font-family:'Noto Sans TC',sans-serif;
         }
-        .btn-rent:disabled { background:#cbd5e1; color:#64748b; cursor:not-allowed; }
+        .btn-rent:disabled { background:#cbd5e1; color:#94a3b8; cursor:not-allowed; }
         .btn-return {
             background:linear-gradient(135deg,#e11d48,#be123c);
-            color:white; border:none; font-weight:600; padding:14px;
-            border-radius:12px; width:100%; font-size:1rem; cursor:pointer;
+            color:white; border:none; font-weight:700;
+            padding:14px; border-radius:12px; width:100%;
+            font-size:1rem; cursor:pointer;
+            font-family:'Noto Sans TC',sans-serif;
         }
-        .btn-buy {
-            background:#16a34a; color:white; border:none; font-weight:600;
-            padding:10px; border-radius:50px; width:100%; font-size:0.9rem; cursor:pointer;
-        }
-
-        /* 手機引導卡片 */
-        .mobile-guide {
-            background:#fffbeb; border:1px solid #fcd34d; border-radius:16px;
-            padding:18px; margin-bottom:16px; display:none;
-        }
-        .btn-metamask {
-            background:#f6851b; color:white; border:none; font-weight:700;
-            padding:12px 20px; border-radius:50px; font-size:0.95rem;
-            cursor:pointer; width:100%; margin-top:10px;
+        .btn-approve {
+            background:#f59e0b; color:white; border:none; font-weight:700;
+            padding:10px; border-radius:50px; width:100%;
+            font-size:0.9rem; cursor:pointer; margin-bottom:8px;
+            font-family:'Noto Sans TC',sans-serif;
         }
 
-        /* 結算說明 */
-        .settlement-box {
-            background:#fff5f5; border:2px dashed #fca5a5;
-            border-radius:16px; padding:20px; margin-bottom:16px;
+        /* 連接按鈕 */
+        #connectBtn {
+            background:linear-gradient(135deg,#0d9488,#0284c7);
+            color:white; border:none; font-weight:600;
+            font-size:0.8rem; padding:8px 18px;
+            border-radius:50px; cursor:pointer;
+            font-family:'Noto Sans TC',sans-serif;
         }
+        #connectBtn.connected { background:#dcfce7; color:#166534; }
 
         /* 管理員彈窗 */
         #adminModal {
@@ -97,40 +127,61 @@
             justify-content:center; align-items:center; backdrop-filter:blur(8px);
         }
         .admin-card {
-            width:90%; max-width:350px; background:white; padding:28px;
-            border-radius:24px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);
+            width:90%; max-width:360px; background:white; padding:28px;
+            border-radius:24px; box-shadow:0 25px 50px rgba(0,0,0,0.4);
         }
-        #adminPanel { display:none; margin-top:30px; border-top:2px dashed #cbd5e1; padding-top:24px; }
+        #adminPanel { display:none; margin-top:24px; border-top:2px dashed #e2e8f0; padding-top:20px; }
 
-        /* 手機優化 */
+        /* 手機引導 */
+        .mobile-guide {
+            background:#fffbeb; border:1px solid #fcd34d; border-radius:14px;
+            padding:16px; margin-bottom:16px; display:none;
+        }
+        .btn-metamask {
+            background:#f6851b; color:white; border:none; font-weight:700;
+            padding:10px 20px; border-radius:50px; font-size:0.9rem;
+            cursor:pointer; width:100%; margin-top:10px;
+            font-family:'Noto Sans TC',sans-serif;
+        }
+
+        /* 費率說明 */
+        .rate-info {
+            background:#f0f9ff; border:1px solid #bae6fd;
+            border-radius:12px; padding:14px; font-size:0.82rem;
+        }
+        .rate-row { display:flex; justify-content:space-between; padding:4px 0; }
+        .rate-row + .rate-row { border-top:1px solid #e0f2fe; }
+
+        /* 結算說明 */
+        .settlement-box {
+            background:#fff5f5; border:2px dashed #fca5a5;
+            border-radius:14px; padding:18px; margin-top:8px;
+        }
+
         @media (max-width:576px) {
-            .glass { padding:16px; border-radius:16px; }
-            .rental-status-card { border-radius:16px; min-height:auto; }
-            .table-responsive { font-size:0.75rem; }
+            .glass { padding:14px; border-radius:14px; }
+            .bikes-grid { grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); }
         }
         .bottom-spacer { height:env(safe-area-inset-bottom,20px); }
-        @keyframes spin { to { transform:rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<!-- 頂部導覽列 -->
+<!-- 頂部導覽 -->
 <div class="top-nav">
     <span class="top-nav-title">🚲 SmartBike 租賃系統</span>
     <div class="d-flex gap-2 align-items-center">
         <button class="btn btn-sm btn-outline-secondary rounded-pill px-2" style="font-size:0.75rem;" onclick="showAdminLogin()">🔒 管理員</button>
-        <button id="connectBtn" class="btn btn-sm rounded-pill px-3 fw-bold"
-            style="background:linear-gradient(135deg,#0d9488,#0284c7);color:white;border:none;font-size:0.8rem;"
-            onclick="connectWallet()">連接錢包</button>
+        <button id="connectBtn" onclick="connectWallet()">連接錢包</button>
     </div>
 </div>
 
-<!-- 管理員登入彈窗 -->
+<!-- 管理員彈窗 -->
 <div id="adminModal">
     <div class="admin-card text-center">
         <div class="mb-3" style="font-size:2.5rem;">🔐</div>
         <h5 class="fw-bold mb-1">管理員登入</h5>
-        <p class="text-muted small mb-3">請輸入系統密碼以存取後台</p>
+        <p class="text-muted small mb-3">請輸入系統密碼</p>
         <input type="password" id="adminPwd" class="form-control mb-3 text-center" placeholder="Password">
         <button class="btn btn-primary w-100 rounded-pill fw-bold py-2" onclick="checkPassword()">登入系統</button>
         <button class="btn btn-link btn-sm text-muted mt-2" onclick="closeAdminLogin()">取消返回</button>
@@ -138,131 +189,236 @@
 </div>
 
 <!-- 主內容 -->
-<main class="container py-3 mb-4" style="max-width:900px;">
+<main class="container py-3 mb-4" style="max-width:960px;">
 
-    <!-- 手機引導（一般瀏覽器偵測到時顯示） -->
+    <!-- 手機引導 -->
     <div class="mobile-guide" id="mobileGuide">
         <div class="d-flex gap-3 align-items-start">
-            <span style="font-size:2rem;">🦊</span>
+            <span style="font-size:1.8rem;">🦊</span>
             <div>
                 <div class="fw-bold mb-1">手機用戶請注意</div>
-                <div class="small text-muted mb-1">
-                    手機瀏覽器（Safari、Chrome）無法直接連接錢包。<br>
-                    請改用 <strong>MetaMask App 內建瀏覽器</strong>開啟此網頁，即可正常使用所有功能。
-                </div>
-                <button class="btn-metamask" onclick="openInMetaMask()">
-                    🦊 用 MetaMask App 開啟
-                </button>
+                <div class="small text-muted">請使用 <strong>MetaMask App 內建瀏覽器</strong>開啟此網頁以連接錢包。</div>
+                <button class="btn-metamask" onclick="openInMetaMask()">🦊 用 MetaMask App 開啟</button>
             </div>
         </div>
     </div>
 
     <div class="row g-3">
 
-        <!-- 左欄：資訊 + 錢包 -->
-        <div class="col-lg-4 col-md-5">
+        <!-- ===== 左欄 ===== -->
+        <div class="col-lg-5">
 
-            <!-- 即時資訊 -->
-            <div class="glass" style="font-size:0.9rem;">
-                <div class="d-flex align-items-center mb-2">
-                    <span class="me-2">📍</span>
-                    <h6 class="fw-bold m-0">即時資訊</h6>
-                </div>
-                <div class="btn-group w-100 mb-3">
-                    <button class="btn btn-outline-primary btn-sm" onclick="updateWeather('Taipei')">台北</button>
-                    <button class="btn btn-outline-primary btn-sm" onclick="updateWeather('Kaohsiung')">高雄</button>
-                </div>
-                <div class="d-flex justify-content-between mb-1 small">
-                    <span class="text-muted">當前城市：</span>
-                    <div>
-                        <span id="cityName" class="fw-bold text-primary">高雄市</span>
-                        <span id="cityTemp" class="fw-bold text-primary ms-1">--°C</span>
-                    </div>
-                </div>
-                <div class="d-flex justify-content-between mb-2 small">
-                    <span class="text-muted">ETH 匯率：</span>
-                    <span id="ethUsdDisplay" class="fw-bold text-success">載入中...</span>
-                </div>
-                <div class="pt-2 border-top">
-                    <div class="d-flex justify-content-between">
-                        <span class="small text-muted">100 TWD ≈</span>
-                        <span id="twdToEthDisplay" class="small fw-bold text-danger">計算中...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 錢包 + 購幣 -->
+            <!-- 錢包資產 -->
             <div class="glass">
                 <div class="text-center mb-3">
                     <div class="small text-muted mb-1">💳 我的錢包資產</div>
                     <h4 id="nkustBalanceDisplay" class="fw-bold text-primary mb-0">-- NKUST</h4>
-                    <div style="font-size:0.7rem;" class="text-muted">1 NKUST = 1 TWD</div>
+                    <div class="small text-muted" id="ethBalanceDisplay">-- ETH</div>
                     <div id="walletAddr" class="text-muted mt-1" style="font-size:0.7rem; word-break:break-all;"></div>
                 </div>
-                <button id="approveBtn" class="btn-approve" onclick="handleApprove()">🔑 授權合約使用 NKUST</button>
-                <button id="rentBtn" class="btn-rent" onclick="handleRent()" disabled>🚲 我要借車</button>
-                <hr class="my-2">
-                <div class="input-group input-group-sm mb-2">
-                    <span class="input-group-text">購買量</span>
-                    <input type="number" id="buyAmount" class="form-control" placeholder="100" min="1">
+
+                <!-- 付款方式選擇 -->
+                <div class="pay-tabs">
+                    <div class="pay-tab active" id="tab-nkust" onclick="selectPayMode('nkust')">
+                        🪙 高科幣 (NKUST)
+                    </div>
+                    <div class="pay-tab" id="tab-eth" onclick="selectPayMode('eth')">
+                        ⟠ 以太幣 (ETH)
+                    </div>
                 </div>
-                <div id="ethQuote" class="text-center mb-2 text-muted" style="font-size:0.75rem;">請輸入欲購買數量</div>
-                <button class="btn-buy" onclick="handleBuyTokens()">以 ETH 兌換高科幣</button>
+
+                <!-- NKUST 模式：顯示授權按鈕 -->
+                <div id="nkust-controls">
+                    <button id="approveBtn" class="btn-approve" onclick="handleApprove()">🔑 授權合約使用 NKUST</button>
+                    <!-- NKUST 購買 -->
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text">購買量</span>
+                        <input type="number" id="buyAmount" class="form-control" placeholder="100" min="1">
+                    </div>
+                    <div id="ethQuote" class="text-center mb-2 text-muted" style="font-size:0.75rem;">請輸入欲購買數量</div>
+                    <button class="btn btn-success btn-sm w-100 rounded-pill fw-bold" onclick="handleBuyTokens()">以 ETH 兌換高科幣</button>
+                </div>
+
+                <!-- ETH 模式：顯示說明 -->
+                <div id="eth-controls" style="display:none;">
+                    <div class="alert alert-info py-2 px-3 small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        押金 <strong id="depositEthDisplay">~0.01 ETH</strong>，還車時自動退回。<br>
+                        租金依實際時間計算，還車時付款。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 費率說明 -->
+            <div class="glass">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-clock-history me-2 text-primary"></i>
+                    <h6 class="fw-bold m-0">計費規則</h6>
+                </div>
+                <div class="rate-info">
+                    <div class="rate-row">
+                        <span class="text-muted">押金</span>
+                        <span class="fw-bold text-danger">100 NKUST</span>
+                    </div>
+                    <div class="rate-row">
+                        <span class="text-muted">前 30 分鐘</span>
+                        <span class="fw-bold">5 NKUST</span>
+                    </div>
+                    <div class="rate-row">
+                        <span class="text-muted">之後每 30 分鐘</span>
+                        <span class="fw-bold">5 NKUST</span>
+                    </div>
+                    <div class="rate-row">
+                        <span class="text-muted">單日上限</span>
+                        <span class="fw-bold text-success">100 NKUST</span>
+                    </div>
+                    <div class="rate-row">
+                        <span class="text-muted">跨日重置</span>
+                        <span class="fw-bold">每日 00:00</span>
+                    </div>
+                    <div class="rate-row">
+                        <span class="text-muted">不滿半小時</span>
+                        <span class="fw-bold">以半小時計</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 即時資訊 -->
+            <div class="glass" style="font-size:0.88rem;">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="me-2">📍</span>
+                    <h6 class="fw-bold m-0">即時資訊</h6>
+                </div>
+                <div class="d-flex justify-content-between mb-1 small">
+                    <span class="text-muted">ETH 匯率：</span>
+                    <span id="ethUsdDisplay" class="fw-bold text-success">載入中...</span>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-muted">100 TWD ≈</span>
+                    <span id="twdToEthDisplay" class="fw-bold text-danger">計算中...</span>
+                </div>
             </div>
         </div>
 
-        <!-- 右欄：租借狀態 -->
-        <div class="col-lg-8 col-md-7">
-            <div class="rental-status-card">
-                <span class="rate-badge">費率: 20 NKUST / 次</span>
-                <div class="p-4">
-                    <h5 class="fw-bold mb-4 text-secondary" style="padding-right:130px;">
-                        <i class="bi bi-bicycle me-2"></i>當前租借狀態
-                    </h5>
-                    <div class="d-flex align-items-center gap-2 mb-4">
-                        <span id="statusDot" class="status-dot"></span>
-                        <h3 id="statusText" class="m-0 fw-bold text-secondary" style="font-size:1.2rem;">尚未連接錢包</h3>
-                    </div>
-                    <div class="mb-4">
-                        <p class="text-muted fw-bold mb-1" style="font-size:0.9rem;">起租時間：</p>
-                        <p id="statusTime" class="h5 text-dark fw-bold">--</p>
-                    </div>
-                    <div id="emptyStatus" class="alert alert-info py-2 px-3 text-center">
-                        <i class="bi bi-info-circle me-2"></i>目前沒有租借中的車輛
-                    </div>
-                    <div id="returnBtnWrapper" style="display:none;">
-                        <button class="btn-return" onclick="handleReturnBike()">我要還車 (Return Bike)</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        <!-- ===== 右欄 ===== -->
+        <div class="col-lg-7">
 
-    <!-- 結算說明 -->
-    <div class="settlement-box">
-        <h6 class="fw-bold text-danger text-center mb-3">🚲 歸還手續與資產結算說明</h6>
-        <div class="row g-3">
-            <div class="col-sm-6">
-                <div class="d-flex align-items-start">
-                    <span class="me-2" style="font-size:1.3rem;">📍</span>
-                    <div>
-                        <div class="fw-bold small">定點停放確認</div>
-                        <div class="text-secondary" style="font-size:0.8rem;">請將單車停放於指定區域，系統將自動釋放車位。</div>
+            <!-- 腳踏車選擇 -->
+            <div class="glass">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold m-0"><i class="bi bi-bicycle me-2 text-primary"></i>選擇腳踏車</h6>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="loadBikes()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>刷新
+                    </button>
+                </div>
+
+                <div class="bikes-grid" id="bikesGrid">
+                    <!-- 動態生成 -->
+                    <div class="text-center text-muted small py-4 w-100">
+                        <i class="bi bi-bicycle fs-2 d-block mb-2"></i>
+                        連接錢包後載入車輛狀態
+                    </div>
+                </div>
+
+                <div class="mt-3 d-flex gap-2 flex-wrap" style="font-size:0.75rem;">
+                    <span><span class="badge-free" style="padding:2px 8px;border-radius:20px;">可租借</span> 空閒</span>
+                    <span><span class="badge-rented" style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;">租借中</span> 已被租</span>
+                    <span><span class="badge-mine" style="background:#bbf7d0;color:#14532d;padding:2px 8px;border-radius:20px;">我的車</span> 你租的</span>
+                </div>
+            </div>
+
+            <!-- 租借狀態 / 操作區 -->
+            <div class="glass">
+                <!-- 未租借：顯示租車按鈕 -->
+                <div id="rentSection">
+                    <h6 class="fw-bold mb-3 text-secondary">
+                        <i class="bi bi-info-circle me-2"></i>目前無租借中的車輛
+                    </h6>
+                    <div id="selectedBikeInfo" class="alert alert-light py-2 px-3 mb-3 small" style="display:none;">
+                        已選擇：<strong id="selectedBikeLabel">--</strong>
+                    </div>
+                    <button id="rentBtn" class="btn-rent" onclick="handleRent()" disabled>
+                        🚲 選擇車輛後租借
+                    </button>
+                </div>
+
+                <!-- 租借中：顯示計時器 + 還車 -->
+                <div id="activeSection" style="display:none;">
+                    <div class="fee-timer">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <div class="fee-timer-label">租借中 — 車輛 #<span id="activeBikeId">-</span></div>
+                                <div class="fee-timer-value" id="feeDisplay">0 NKUST</div>
+                                <div class="fee-timer-sub">目前應付費用（不含押金）</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fee-timer-label">已騎</div>
+                                <div id="elapsedDisplay" class="fw-bold" style="font-size:1.2rem;color:#00d4b8;">00:00</div>
+                            </div>
+                        </div>
+                        <div class="fee-timer-label mb-1">今日費用上限進度</div>
+                        <div class="fee-progress">
+                            <div class="fee-progress-bar" id="feeProgressBar" style="width:0%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1" style="font-size:0.7rem;opacity:0.6;">
+                            <span>0 NKUST</span>
+                            <span>上限 100 NKUST</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="small text-muted mb-1">起租時間：<strong id="rentStartDisplay">--</strong></div>
+                        <div class="small text-muted">付款方式：<strong id="payModeDisplay">--</strong></div>
+                    </div>
+
+                    <button class="btn-return" onclick="handleReturn()">
+                        還車並付款
+                    </button>
+                </div>
+            </div>
+
+            <!-- 結算說明 -->
+            <div class="settlement-box">
+                <h6 class="fw-bold text-danger text-center mb-3">📋 歸還與結算說明</h6>
+                <div class="row g-2">
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-start gap-2">
+                            <span>📍</span>
+                            <div>
+                                <div class="fw-bold small">定點停放</div>
+                                <div class="text-secondary" style="font-size:0.78rem;">停放於指定站點後點擊還車。</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-start gap-2">
+                            <span>💰</span>
+                            <div>
+                                <div class="fw-bold small">押金退回</div>
+                                <div class="text-secondary" style="font-size:0.78rem;">還車後 100 NKUST 押金立即退回。</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-start gap-2">
+                            <span>⏱️</span>
+                            <div>
+                                <div class="fw-bold small">時間計費</div>
+                                <div class="text-secondary" style="font-size:0.78rem;">不滿半小時以半小時計算。</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-start gap-2">
+                            <span>🔄</span>
+                            <div>
+                                <div class="fw-bold small">跨日重置</div>
+                                <div class="text-secondary" style="font-size:0.78rem;">每日 00:00 上限重新計算。</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6">
-                <div class="d-flex align-items-start">
-                    <span class="me-2" style="font-size:1.3rem;">⚡</span>
-                    <div>
-                        <div class="fw-bold small">智能合約即時退費</div>
-                        <div class="text-secondary" style="font-size:0.8rem;">歸還後，<span class="fw-bold text-success">10 NKUST</span> 押金將立即退回錢包。</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="text-center mt-3" style="font-size:0.8rem; color:#e53e3e;">
-            ※ 1 NKUST 恆等於 1 TWD，確保您的消費清晰透明。
         </div>
     </div>
 
@@ -270,17 +426,18 @@
     <div id="adminPanel">
         <div class="glass border border-danger" style="border-width:2px !important;">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <h5 class="fw-bold text-danger m-0">📊 區塊鏈後台數據</h5>
-                <button class="btn btn-sm btn-outline-danger" onclick="refreshAdminData()">🔄 刷新鏈上日誌</button>
+                <h5 class="fw-bold text-danger m-0">📊 後台管理</h5>
+                <button class="btn btn-sm btn-outline-danger" onclick="refreshAdminData()">🔄 刷新</button>
             </div>
             <div class="table-responsive">
-                <table class="table table-hover align-middle">
+                <table class="table table-hover align-middle small">
                     <thead class="table-light">
                         <tr>
-                            <th>使用者地址</th>
+                            <th>車號</th>
                             <th class="text-center">狀態</th>
+                            <th>租借者</th>
                             <th class="text-center">起租時間</th>
-                            <th class="text-center">結算</th>
+                            <th class="text-center">付款方式</th>
                         </tr>
                     </thead>
                     <tbody id="adminTableBody"></tbody>
@@ -293,133 +450,134 @@
 <div class="bottom-spacer"></div>
 
 <script>
-// ===== 合約 ABI =====
+// =============================================
+// 合約 ABI
+// =============================================
 const erc20Abi = [
     "function balanceOf(address owner) view returns (uint256)",
     "function approve(address spender, uint256 amount) returns (bool)",
     "function allowance(address owner, address spender) view returns (uint256)",
     "function buyTokens(uint256 amount) payable"
 ];
+
 const bikeAbi = [
-    "function rent()",
-    "function returnBike()",
-    "function users(address user) view returns (uint256 startTime, bool isRented)",
-    "function getAllUsers() view returns (address[])"
+    // 租車
+    "function rentWithEth(uint8 bikeId) payable",
+    "function rentWithNkust(uint8 bikeId)",
+    // 還車
+    "function returnWithEth(uint8 bikeId) payable",
+    "function returnWithNkust(uint8 bikeId)",
+    // 查詢
+    "function getAllBikes() view returns (uint8[] ids, bool[] available, address[] renters, uint256[] startTimes)",
+    "function getBike(uint8 bikeId) view returns (bool isAvailable, address renter, uint256 rentStartTime, bool paidWithEth)",
+    "function estimateFee(address user) view returns (uint256 feeNkust, uint256 feeEth)",
+    "function getAllUsers() view returns (address[])",
+    "function users(address user) view returns (uint256 lastRentDay, uint256 feePaidToday, uint256 currentBikeId, bool hasActiveRental)",
+    "function nkustPerEth() view returns (uint256)",
+    "function DEPOSIT_NKUST() view returns (uint256)",
+    "function RATE_PER_HALF() view returns (uint256)",
+    "function DAILY_MAX_NKUST() view returns (uint256)"
 ];
 
-// ===== 設定 =====
+// =============================================
+// 設定
+// =============================================
 const ADMIN_PASSWORD  = "nkust";
 const nkustAddr       = "0x826f67ce00E5b17450E67Ed2b227320A2E470d8E";
-const bikeAddr        = "0xB59aC4c27fC2E5D231C7D3497245CF3841A28851";
+const bikeAddr        = "0x92E381e7Cf34505f78a49B5C73272d2d6a171455"; // NKUSTBike v2
 const WEATHER_API_KEY = "db68851cff88bbfaf24ddcefbccb2a18";
 
 let globalEstimatedEth = "0";
 let currentUsdToTwd    = 32.5;
 let currentEthUsdPrice = 0;
+let payMode            = "nkust"; // "nkust" | "eth"
+let selectedBikeId     = null;
+let feeTimer           = null;
+let rentStartTs        = 0;
 
-// ===== 裝置判斷 =====
-const isMobile        = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const isMetaMaskApp   = navigator.userAgent.includes('MetaMaskMobile');
-const hasEthereum     = typeof window.ethereum !== 'undefined';
+const isMobile      = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const hasEthereum   = typeof window.ethereum !== 'undefined';
 
-// ===== 手機引導：在 MetaMask App 內開啟 =====
+// =============================================
+// 前端費率計算（與合約邏輯一致，用於即時顯示）
+// =============================================
+const HALF_HOUR_S    = 30 * 60; // 秒
+const RATE_PER_HALF  = 5;       // NKUST
+const DAILY_MAX      = 100;     // NKUST
+
+function todayStartTs(ts) {
+    // UTC+8 當日零時
+    const localTs = ts + 8 * 3600;
+    return Math.floor(localTs / 86400) * 86400 - 8 * 3600;
+}
+
+function calcFeeLocal(startTs, endTs) {
+    if (endTs <= startTs) return 0;
+
+    let total      = 0;
+    let cursor     = startTs;
+    let accumulated = 0;
+    let curDayStart = todayStartTs(startTs);
+
+    while (cursor < endTs) {
+        let segEnd = cursor + HALF_HOUR_S;
+        if (segEnd > endTs) segEnd = endTs;
+
+        const nextDay = curDayStart + 86400;
+
+        if (segEnd > nextDay) {
+            // 跨日：這半小時仍收費
+            if (accumulated < DAILY_MAX) {
+                const charge = Math.min(RATE_PER_HALF, DAILY_MAX - accumulated);
+                total       += charge;
+                accumulated += charge;
+            }
+            accumulated = 0;
+            curDayStart = nextDay;
+        } else {
+            if (accumulated < DAILY_MAX) {
+                const charge = Math.min(RATE_PER_HALF, DAILY_MAX - accumulated);
+                total       += charge;
+                accumulated += charge;
+            }
+        }
+        cursor = segEnd;
+    }
+
+    if (endTs > startTs && total === 0) return RATE_PER_HALF;
+    return total;
+}
+
+function formatElapsed(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// =============================================
+// MetaMask 連線
+// =============================================
 function openInMetaMask() {
-    // 拿掉 https:// 讓 deep link 正確
     const url = window.location.href.replace(/^https?:\/\//, '');
     window.location.href = 'https://metamask.app.link/dapp/' + url;
 }
 
-// ===== 連接錢包 =====
 async function connectWallet() {
     if (!hasEthereum) {
-        if (isMobile) {
-            // 手機但不在 MetaMask App 裡
-            openInMetaMask();
-        } else {
-            alert("❌ 未偵測到 MetaMask，請先安裝 MetaMask 擴充功能。\nhttps://metamask.io");
-        }
+        if (isMobile) { openInMetaMask(); return; }
+        alert("請先安裝 MetaMask：https://metamask.io");
         return;
     }
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
+        window._provider = provider;
         await init(provider);
     } catch (e) {
-        console.error("連接失敗:", e);
-        alert("連接錢包失敗：" + (e.message || e));
+        alert("連接失敗：" + e.message);
     }
-}
-
-// ===== 初始化 =====
-async function init(provider) {
-    provider = provider || (hasEthereum ? new ethers.providers.Web3Provider(window.ethereum) : null);
-    if (!provider) return;
-
-    try {
-        const signer   = provider.getSigner();
-        const user     = await signer.getAddress();
-
-        // 更新連接按鈕
-        const btn = document.getElementById('connectBtn');
-        btn.innerText = "✅ " + user.substring(0,6) + "..." + user.substring(user.length-4);
-        btn.style.background = "#dcfce7";
-        btn.style.color = "#166534";
-        document.getElementById('walletAddr').innerText = user;
-
-        // 餘額
-        const token    = new ethers.Contract(nkustAddr, erc20Abi, provider);
-        const bal      = await token.balanceOf(user);
-        const cleanBal = Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18)));
-        document.getElementById('nkustBalanceDisplay').innerText = cleanBal + " NKUST";
-
-        // 授權
-        const allow   = await token.allowance(user, bikeAddr);
-        const appBtn  = document.getElementById('approveBtn');
-        const rentBtn = document.getElementById('rentBtn');
-        if (allow.gte(ethers.utils.parseUnits("20", 18))) {
-            appBtn.style.background = "#16a34a";
-            appBtn.innerText = "✅ 授權已完成";
-            appBtn.disabled  = true;
-            rentBtn.disabled = false;
-            rentBtn.style.opacity = "1";
-        }
-
-        // 租借狀態
-        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
-        const info = await bike.users(user);
-
-        const statusText = document.getElementById('statusText');
-        const statusDot  = document.getElementById('statusDot');
-        const statusTime = document.getElementById('statusTime');
-
-        if (info.isRented) {
-            statusText.innerText       = "使用中 (Renting)";
-            statusText.style.color     = "#16a34a";
-            statusDot.style.background = "#16a34a";
-            statusDot.classList.add('pulsing-dot');
-            if (info.startTime.gt(0)) {
-                statusTime.innerText = new Date(info.startTime.toNumber() * 1000).toLocaleString();
-            }
-            updateUI(true);
-        } else {
-            statusText.innerText       = "未租借中";
-            statusText.style.color     = "#64748b";
-            statusDot.style.background = "#94a3b8";
-            statusTime.innerText       = "--";
-            updateUI(false);
-        }
-
-        // 儲存 provider 供其他函數使用
-        window._provider = provider;
-
-    } catch (e) { console.error("初始化失敗:", e); }
-}
-
-function updateUI(isRenting) {
-    document.getElementById('emptyStatus').style.display      = isRenting ? 'none'  : 'block';
-    document.getElementById('returnBtnWrapper').style.display = isRenting ? 'block' : 'none';
-    const r = document.getElementById('rentBtn');
-    if (r) r.style.display = isRenting ? 'none' : 'block';
 }
 
 function getProvider() {
@@ -428,7 +586,204 @@ function getProvider() {
     return new ethers.providers.Web3Provider(window.ethereum);
 }
 
-// ===== 合約操作 =====
+// =============================================
+// 初始化
+// =============================================
+async function init(provider) {
+    provider = provider || getProvider();
+    if (!provider) return;
+    try {
+        const signer = provider.getSigner();
+        const user   = await signer.getAddress();
+
+        // 更新按鈕
+        const btn = document.getElementById('connectBtn');
+        btn.innerText = "✅ " + user.substring(0,6) + "..." + user.substring(user.length-4);
+        btn.classList.add('connected');
+        document.getElementById('walletAddr').innerText = user;
+
+        // NKUST 餘額
+        const token = new ethers.Contract(nkustAddr, erc20Abi, provider);
+        const bal   = await token.balanceOf(user);
+        document.getElementById('nkustBalanceDisplay').innerText =
+            Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18))) + " NKUST";
+
+        // ETH 餘額
+        const ethBal = await provider.getBalance(user);
+        document.getElementById('ethBalanceDisplay').innerText =
+            parseFloat(ethers.utils.formatEther(ethBal)).toFixed(4) + " ETH";
+
+        // 授權狀態
+        const allow  = await token.allowance(user, bikeAddr);
+        const appBtn = document.getElementById('approveBtn');
+        if (allow.gte(ethers.utils.parseUnits("200", 18))) {
+            appBtn.style.background = "#16a34a";
+            appBtn.innerText = "✅ 授權已完成";
+            appBtn.disabled  = true;
+        }
+
+        // 讀取車輛狀態
+        await loadBikes(provider, user);
+
+        // 讀取租借狀態
+        await loadRentalStatus(provider, user);
+
+    } catch (e) { console.error("初始化失敗:", e); }
+}
+
+// =============================================
+// 載入所有腳踏車狀態
+// =============================================
+async function loadBikes(provider, user) {
+    provider = provider || getProvider();
+    if (!provider) return;
+
+    try {
+        if (!user) user = await provider.getSigner().getAddress();
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
+        const [ids, available, renters, startTimes] = await bike.getAllBikes();
+
+        const grid = document.getElementById('bikesGrid');
+        grid.innerHTML = "";
+
+        for (let i = 0; i < ids.length; i++) {
+            const id        = ids[i];
+            const isFree    = available[i];
+            const isMine    = renters[i].toLowerCase() === user.toLowerCase();
+            const startTs   = startTimes[i].toNumber();
+
+            let tileClass = "bike-tile";
+            let badgeHTML = "";
+            let extraInfo = "";
+
+            if (isMine) {
+                tileClass += " mine";
+                badgeHTML = `<div class="bike-status-badge badge-mine">我的車</div>`;
+            } else if (!isFree) {
+                tileClass += " rented";
+                badgeHTML = `<div class="bike-status-badge badge-rented">租借中</div>`;
+                if (startTs > 0) {
+                    const elapsed = Math.floor(Date.now()/1000) - startTs;
+                    extraInfo = `<div style="font-size:0.65rem;color:#94a3b8;margin-top:2px;">${formatElapsed(elapsed)}</div>`;
+                }
+            } else {
+                badgeHTML = `<div class="bike-status-badge badge-free">可租借</div>`;
+            }
+
+            const tile = document.createElement('div');
+            tile.className = tileClass;
+            tile.id        = `bike-tile-${id}`;
+            tile.innerHTML = `
+                <div class="bike-emoji">🚲</div>
+                <div class="bike-id">SB-${String(id+1).padStart(3,'0')}</div>
+                ${badgeHTML}
+                ${extraInfo}
+            `;
+
+            if (isFree && !isMine) {
+                tile.onclick = () => selectBike(id);
+            }
+
+            grid.appendChild(tile);
+        }
+    } catch (e) {
+        console.error("載入車輛失敗:", e);
+        document.getElementById('bikesGrid').innerHTML =
+            `<div class="text-danger small text-center py-3 w-100">
+                <i class="bi bi-exclamation-circle me-1"></i>載入失敗，請確認合約地址與網路
+             </div>`;
+    }
+}
+
+// =============================================
+// 選擇車輛
+// =============================================
+function selectBike(id) {
+    // 清除舊選擇
+    document.querySelectorAll('.bike-tile.selected').forEach(t => t.classList.remove('selected'));
+
+    selectedBikeId = id;
+    document.getElementById(`bike-tile-${id}`)?.classList.add('selected');
+
+    const info = document.getElementById('selectedBikeInfo');
+    info.style.display = 'block';
+    document.getElementById('selectedBikeLabel').innerText = `SB-${String(id+1).padStart(3,'0')}`;
+
+    const rentBtn = document.getElementById('rentBtn');
+    rentBtn.disabled  = false;
+    rentBtn.innerText = `🚲 租借 SB-${String(id+1).padStart(3,'0')}`;
+}
+
+// =============================================
+// 載入租借狀態
+// =============================================
+async function loadRentalStatus(provider, user) {
+    try {
+        const bike     = new ethers.Contract(bikeAddr, bikeAbi, provider);
+        const userInfo = await bike.users(user);
+
+        if (userInfo.hasActiveRental) {
+            const bikeId   = userInfo.currentBikeId.toNumber();
+            const bikeInfo = await bike.getBike(bikeId);
+
+            rentStartTs = bikeInfo.rentStartTime.toNumber();
+
+            document.getElementById('rentSection').style.display   = 'none';
+            document.getElementById('activeSection').style.display = 'block';
+            document.getElementById('activeBikeId').innerText      = `SB-${String(bikeId+1).padStart(3,'0')}`;
+            document.getElementById('rentStartDisplay').innerText  =
+                new Date(rentStartTs * 1000).toLocaleString();
+            document.getElementById('payModeDisplay').innerText    =
+                bikeInfo.paidWithEth ? "⟠ ETH" : "🪙 NKUST";
+
+            // 啟動計時器
+            startFeeTimer();
+        } else {
+            document.getElementById('rentSection').style.display   = 'block';
+            document.getElementById('activeSection').style.display = 'none';
+            stopFeeTimer();
+        }
+    } catch (e) { console.error("讀取租借狀態失敗:", e); }
+}
+
+// =============================================
+// 費用計時器
+// =============================================
+function startFeeTimer() {
+    stopFeeTimer();
+    updateFeeDisplay();
+    feeTimer = setInterval(updateFeeDisplay, 1000);
+}
+
+function stopFeeTimer() {
+    if (feeTimer) { clearInterval(feeTimer); feeTimer = null; }
+}
+
+function updateFeeDisplay() {
+    if (!rentStartTs) return;
+    const now     = Math.floor(Date.now() / 1000);
+    const elapsed = now - rentStartTs;
+    const fee     = calcFeeLocal(rentStartTs, now);
+
+    document.getElementById('elapsedDisplay').innerText = formatElapsed(elapsed);
+    document.getElementById('feeDisplay').innerText     = fee + " NKUST";
+    document.getElementById('feeProgressBar').style.width = Math.min(fee / DAILY_MAX * 100, 100) + "%";
+}
+
+// =============================================
+// 付款模式切換
+// =============================================
+function selectPayMode(mode) {
+    payMode = mode;
+    document.getElementById('tab-nkust').classList.toggle('active', mode === 'nkust');
+    document.getElementById('tab-eth').classList.toggle('active',   mode === 'eth');
+    document.getElementById('nkust-controls').style.display = mode === 'nkust' ? 'block' : 'none';
+    document.getElementById('eth-controls').style.display   = mode === 'eth'   ? 'block' : 'none';
+}
+
+// =============================================
+// 授權
+// =============================================
 async function handleApprove() {
     const provider = getProvider(); if (!provider) return;
     try {
@@ -436,71 +791,133 @@ async function handleApprove() {
         const user    = await signer.getAddress();
         const token   = new ethers.Contract(nkustAddr, erc20Abi, signer);
         const balance = await token.balanceOf(user);
-        if (balance.isZero()) { alert("❌ 餘額為 0"); return; }
-        const tx = await token.approve(bikeAddr, balance);
-        alert("⏳ 正在授權...");
+        if (balance.isZero()) { alert("❌ 餘額為 0，請先購買高科幣"); return; }
+        // 授權最大值，避免每次都要授權
+        const maxApprove = ethers.constants.MaxUint256;
+        const tx = await token.approve(bikeAddr, maxApprove);
+        alert("⏳ 授權中...");
         await tx.wait();
         alert("✅ 授權成功！");
         await init(provider);
     } catch (e) { alert("授權失敗：" + (e.reason || e.message)); }
 }
 
+// =============================================
+// 租車
+// =============================================
 async function handleRent() {
+    if (selectedBikeId === null) { alert("請先選擇車輛"); return; }
     const provider = getProvider(); if (!provider) return;
+
     try {
         const signer = provider.getSigner();
         const bike   = new ethers.Contract(bikeAddr, bikeAbi, signer);
-        const tx     = await bike.rent({ gasLimit: 300000 });
-        alert("⏳ 交易已送出，等待確認...");
-        await tx.wait();
-        alert("✅ 租車成功！");
+
+        if (payMode === 'eth') {
+            // 取得押金 ETH 金額
+            const depositNkust = await bike.DEPOSIT_NKUST();
+            const nkustPerEth  = await bike.nkustPerEth();
+            const depositEth   = depositNkust.div(nkustPerEth);
+            // 加一點 buffer 防止匯率誤差
+            const depositEthWithBuffer = depositEth.mul(105).div(100);
+
+            const tx = await bike.rentWithEth(selectedBikeId, { value: depositEthWithBuffer });
+            alert("⏳ 租車交易送出...");
+            await tx.wait();
+        } else {
+            const tx = await bike.rentWithNkust(selectedBikeId);
+            alert("⏳ 租車交易送出...");
+            await tx.wait();
+        }
+
+        alert("✅ 租車成功！押金已扣除，開始計時。");
+        selectedBikeId = null;
         await init(provider);
-    } catch (e) { alert("錯誤：" + (e.reason || e.message)); }
+
+    } catch (e) { alert("租車失敗：" + (e.reason || e.message)); }
 }
 
-async function handleReturnBike() {
+// =============================================
+// 還車
+// =============================================
+async function handleReturn() {
     const provider = getProvider(); if (!provider) return;
+
     try {
-        const signer = provider.getSigner();
-        const bike   = new ethers.Contract(bikeAddr, bikeAbi, signer);
-        const tx     = await bike.returnBike();
-        alert("還車交易已送出...");
-        await tx.wait();
-        alert("✅ 還車成功！");
+        const signer   = provider.getSigner();
+        const user     = await signer.getAddress();
+        const bikeContract = new ethers.Contract(bikeAddr, bikeAbi, signer);
+
+        // 取得目前租借的車
+        const userInfo = await bikeContract.users(user);
+        if (!userInfo.hasActiveRental) { alert("目前沒有租借中的車輛"); return; }
+        const bikeId = userInfo.currentBikeId.toNumber();
+
+        // 取得合約估算費用
+        const [feeNkust, feeEth] = await bikeContract.estimateFee(user);
+
+        // 加 5% buffer（避免時間差導致不足）
+        const feeNkustBuffer = feeNkust.mul(105).div(100);
+        const feeEthBuffer   = feeEth.mul(105).div(100);
+
+        const bikeInfo = await bikeContract.getBike(bikeId);
+        const wasEth   = bikeInfo.paidWithEth;
+
+        const feeDisplay = wasEth
+            ? parseFloat(ethers.utils.formatEther(feeEth)).toFixed(6) + " ETH"
+            : Math.ceil(parseFloat(ethers.utils.formatUnits(feeNkust, 18))) + " NKUST";
+
+        if (!confirm(`還車費用約 ${feeDisplay}，確認還車並付款？`)) return;
+
+        if (wasEth) {
+            const tx = await bikeContract.returnWithEth(bikeId, { value: feeEthBuffer });
+            alert("⏳ 還車交易送出...");
+            await tx.wait();
+        } else {
+            const tx = await bikeContract.returnWithNkust(bikeId);
+            alert("⏳ 還車交易送出...");
+            await tx.wait();
+        }
+
+        stopFeeTimer();
+        alert("✅ 還車成功！押金已退回。");
         await init(provider);
-    } catch (e) { alert("還車出錯：" + (e.data?.message || e.message)); }
+
+    } catch (e) { alert("還車失敗：" + (e.data?.message || e.reason || e.message)); }
 }
 
+// =============================================
+// 購幣
+// =============================================
 async function handleBuyTokens() {
     const provider = getProvider(); if (!provider) return;
-    const amountToBuy = document.getElementById('buyAmount').value;
-    if (!globalEstimatedEth || globalEstimatedEth === "0") { alert("請先輸入有效購買數量"); return; }
+    const amount   = document.getElementById('buyAmount').value;
+    if (!globalEstimatedEth || globalEstimatedEth === "0") { alert("請先輸入數量"); return; }
     try {
         const signer = provider.getSigner();
         const token  = new ethers.Contract(nkustAddr, erc20Abi, signer);
-        const tx     = await token.buyTokens(amountToBuy, { value: ethers.utils.parseEther(globalEstimatedEth) });
-        alert("⏳ 正在買幣...");
+        const tx     = await token.buyTokens(amount, { value: ethers.utils.parseEther(globalEstimatedEth) });
+        alert("⏳ 買幣中...");
         await tx.wait();
-        alert("✅ 成功購買 " + amountToBuy + " NKUST！");
+        alert("✅ 成功購買 " + amount + " NKUST！");
         await init(provider);
     } catch (e) { alert("買幣失敗：" + (e.reason || e.message)); }
 }
 
-// ===== 換算 =====
+// =============================================
+// 匯率
+// =============================================
 function calculateRealtimeEth() {
     const amount  = parseFloat(document.getElementById('buyAmount')?.value) || 0;
     const quoteEl = document.getElementById('ethQuote');
     if (!quoteEl) return;
     if (amount <= 0 || currentEthUsdPrice === 0) {
-        globalEstimatedEth = "0";
-        quoteEl.innerHTML = "請輸入欲購買的高科幣數量";
-        return;
+        globalEstimatedEth = "0"; quoteEl.innerHTML = "請輸入欲購買數量"; return;
     }
     globalEstimatedEth = ((amount / currentUsdToTwd) / currentEthUsdPrice).toFixed(15);
     quoteEl.innerHTML = `需支付約 <span class="text-danger fw-bold">${globalEstimatedEth} ETH</span>`;
 }
 
-// ===== 匯率 =====
 async function fetchEthPrice() {
     try {
         const fxRes  = await fetch("https://open.er-api.com/v6/latest/USD");
@@ -513,21 +930,21 @@ async function fetchEthPrice() {
         const twdEl = document.getElementById('twdToEthDisplay');
         if (ethEl) ethEl.innerText = "$ " + currentEthUsdPrice.toLocaleString();
         if (twdEl) twdEl.innerText = ((100 / currentUsdToTwd) / currentEthUsdPrice).toFixed(8) + " ETH";
+
+        // 更新 ETH 押金顯示
+        if (currentEthUsdPrice > 0 && currentUsdToTwd > 0) {
+            const depositEthVal = (100 / currentUsdToTwd / currentEthUsdPrice).toFixed(6);
+            const el = document.getElementById('depositEthDisplay');
+            if (el) el.innerText = `~${depositEthVal} ETH`;
+        }
+
         calculateRealtimeEth();
     } catch (e) { console.error("匯率更新失敗"); }
 }
 
-// ===== 天氣 =====
-async function updateWeather(city) {
-    try {
-        const res  = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${WEATHER_API_KEY}&units=metric&lang=zh_tw`);
-        const data = await res.json();
-        document.getElementById('cityName').innerText = city === 'Taipei' ? "台北市" : "高雄市";
-        document.getElementById('cityTemp').innerText = Math.round(data.main.temp) + "°C";
-    } catch (e) { console.error("天氣更新失敗"); }
-}
-
-// ===== 管理員 =====
+// =============================================
+// 管理員
+// =============================================
 function showAdminLogin()  { document.getElementById('adminModal').style.display = 'flex'; }
 function closeAdminLogin() { document.getElementById('adminModal').style.display = 'none'; }
 function checkPassword() {
@@ -544,50 +961,67 @@ async function refreshAdminData() {
     const btn = document.querySelector('button[onclick="refreshAdminData()"]');
     if (btn) btn.innerText = "🔄 同步中...";
     try {
-        const bike     = new ethers.Contract(bikeAddr, bikeAbi, provider);
-        const userList = await bike.getAllUsers();
-        const tbody    = document.getElementById('adminTableBody');
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
+        const [ids, available, renters, startTimes] = await bike.getAllBikes();
+        const tbody = document.getElementById('adminTableBody');
         if (!tbody) return;
         tbody.innerHTML = "";
         const fmt = (ts) => {
             if (!ts || ts === 0) return "-";
-            const d = new Date(ts * 1000), p = n => String(n).padStart(2,'0');
-            return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+            return new Date(ts * 1000).toLocaleString();
         };
-        for (let addr of userList) {
-            const info  = await bike.users(addr);
-            const short = addr.substring(0,8) + "..." + addr.substring(addr.length-4);
-            const badge = info.isRented ? '<span class="badge bg-warning text-dark">租借中</span>' : '<span class="badge bg-secondary">已歸還</span>';
-            const settle = info.isRented ? '<span class="text-primary small">進行中</span>' : '<span class="text-success small">已結算</span>';
-            tbody.innerHTML += `<tr><td class="font-monospace small" title="${addr}">${short}</td><td class="text-center">${badge}</td><td class="text-center small">${fmt(info.startTime.toNumber())}</td><td class="text-center">${settle}</td></tr>`;
+        for (let i = 0; i < ids.length; i++) {
+            const isFree  = available[i];
+            const renter  = renters[i];
+            const startTs = startTimes[i].toNumber();
+            let bikeInfo  = null;
+            let payWith   = "-";
+            if (!isFree) {
+                try {
+                    bikeInfo = await bike.getBike(ids[i]);
+                    payWith  = bikeInfo.paidWithEth ? "⟠ ETH" : "🪙 NKUST";
+                } catch(e) {}
+            }
+            const badge = isFree
+                ? '<span class="badge bg-success">可租借</span>'
+                : '<span class="badge bg-warning text-dark">租借中</span>';
+            const shortAddr = isFree ? "-" :
+                renter.substring(0,8) + "..." + renter.substring(renter.length-4);
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-bold">SB-${String(ids[i]+1).padStart(3,'0')}</td>
+                    <td class="text-center">${badge}</td>
+                    <td class="font-monospace" title="${renter}">${shortAddr}</td>
+                    <td class="text-center">${fmt(startTs)}</td>
+                    <td class="text-center">${payWith}</td>
+                </tr>`;
         }
-        if (btn) btn.innerText = "🔄 刷新鏈上日誌";
+        if (btn) btn.innerText = "🔄 刷新";
     } catch (e) {
         console.error("後台讀取失敗:", e);
-        if (btn) btn.innerText = "❌ 刷新失敗";
-        alert("無法讀取後台數據");
+        if (btn) btn.innerText = "❌ 失敗";
     }
 }
 
-// ===== 啟動 =====
+// =============================================
+// 啟動
+// =============================================
 async function startApp() {
-    await updateWeather('Kaohsiung');
+    if (isMobile && !hasEthereum) {
+        document.getElementById('mobileGuide').style.display = 'block';
+    }
+
     await fetchEthPrice();
     document.getElementById('buyAmount')?.addEventListener('input', calculateRealtimeEth);
 
-    if (isMobile && !hasEthereum) {
-        // 手機上沒有 MetaMask App，顯示引導
-        document.getElementById('mobileGuide').style.display = 'block';
-    } else if (hasEthereum) {
-        // 有 ethereum（桌機 MetaMask 或 MetaMask App 內建瀏覽器）
-        // 若已有授權帳號，自動連線
+    if (hasEthereum) {
         try {
             const accounts = await window.ethereum.request({ method:'eth_accounts' });
             if (accounts.length > 0) {
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                await init(provider);
+                window._provider = new ethers.providers.Web3Provider(window.ethereum);
+                await init(window._provider);
             }
-        } catch (e) {}
+        } catch(e) {}
         window.ethereum.on('accountsChanged', () => location.reload());
         window.ethereum.on('chainChanged',    () => location.reload());
     }
@@ -595,6 +1029,15 @@ async function startApp() {
 
 window.addEventListener('load', startApp);
 setInterval(fetchEthPrice, 60000);
+// 每 30 秒自動刷新車輛狀態
+setInterval(async () => {
+    if (window._provider) {
+        try {
+            const user = await window._provider.getSigner().getAddress();
+            await loadBikes(window._provider, user);
+        } catch(e) {}
+    }
+}, 30000);
 </script>
 </body>
 </html>
