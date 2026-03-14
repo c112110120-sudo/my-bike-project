@@ -217,36 +217,19 @@
                     <div id="walletAddr" class="text-muted mt-1" style="font-size:0.7rem; word-break:break-all;"></div>
                 </div>
 
-                <!-- 付款方式選擇 -->
-                <div class="pay-tabs">
-                    <div class="pay-tab active" id="tab-nkust" onclick="selectPayMode('nkust')">
-                        🪙 高科幣 (NKUST)
-                    </div>
-                    <div class="pay-tab" id="tab-eth" onclick="selectPayMode('eth')">
-                        ⟠ 以太幣 (ETH)
-                    </div>
+                <!-- 授權 + 購幣（純 NKUST） -->
+                <div class="alert alert-info py-2 px-3 small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    租車僅接受 <strong>高科幣（NKUST）</strong> 付款。<br>
+                    兌換率：<strong>1 USD = 5 NKUST</strong>
                 </div>
-
-                <!-- NKUST 模式：顯示授權按鈕 -->
-                <div id="nkust-controls">
-                    <button id="approveBtn" class="btn-approve" onclick="handleApprove()">🔑 授權合約使用 NKUST</button>
-                    <!-- NKUST 購買 -->
-                    <div class="input-group input-group-sm mb-2">
-                        <span class="input-group-text">購買量</span>
-                        <input type="number" id="buyAmount" class="form-control" placeholder="100" min="1">
-                    </div>
-                    <div id="ethQuote" class="text-center mb-2 text-muted" style="font-size:0.75rem;">請輸入欲購買數量</div>
-                    <button class="btn btn-success btn-sm w-100 rounded-pill fw-bold" onclick="handleBuyTokens()">以 ETH 兌換高科幣</button>
+                <button id="approveBtn" class="btn-approve" onclick="handleApprove()">🔑 授權合約使用 NKUST</button>
+                <div class="input-group input-group-sm mb-2">
+                    <span class="input-group-text">購買量</span>
+                    <input type="number" id="buyAmount" class="form-control" placeholder="100" min="1">
                 </div>
-
-                <!-- ETH 模式：顯示說明 -->
-                <div id="eth-controls" style="display:none;">
-                    <div class="alert alert-info py-2 px-3 small mb-0">
-                        <i class="bi bi-info-circle me-1"></i>
-                        押金 <strong id="depositEthDisplay">~0.01 ETH</strong>，還車時自動退回。<br>
-                        租金依實際時間計算，還車時付款。
-                    </div>
-                </div>
+                <div id="ethQuote" class="text-center mb-2 text-muted" style="font-size:0.75rem;">請輸入欲購買數量</div>
+                <button class="btn btn-success btn-sm w-100 rounded-pill fw-bold" onclick="handleBuyTokens()">以 ETH 兌換高科幣</button>
             </div>
 
             <!-- 費率說明 -->
@@ -289,13 +272,34 @@
                     <span class="me-2">📍</span>
                     <h6 class="fw-bold m-0">即時資訊</h6>
                 </div>
-                <div class="d-flex justify-content-between mb-1 small">
-                    <span class="text-muted">ETH 匯率：</span>
-                    <span id="ethUsdDisplay" class="fw-bold text-success">載入中...</span>
+                <!-- 天氣 -->
+                <div class="btn-group w-100 mb-2" role="group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="updateWeather('Taipei')">台北</button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="updateWeather('Kaohsiung')">高雄</button>
                 </div>
-                <div class="d-flex justify-content-between small">
-                    <span class="text-muted">100 TWD ≈</span>
-                    <span id="twdToEthDisplay" class="fw-bold text-danger">計算中...</span>
+                <div class="d-flex justify-content-between mb-2 small">
+                    <span class="text-muted">當前城市：</span>
+                    <div>
+                        <span id="cityName" class="fw-bold text-primary">高雄市</span>
+                        <span id="cityTemp" class="fw-bold text-primary ms-1">--°C</span>
+                    </div>
+                </div>
+                <div class="pt-2 border-top">
+                    <!-- ETH 匯率 -->
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-muted">ETH 匯率：</span>
+                        <span id="ethUsdDisplay" class="fw-bold text-success">載入中...</span>
+                    </div>
+                    <!-- 1 USD = X ETH 即時換算 -->
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-muted">1 USD ≈</span>
+                        <span id="usdToEthDisplay" class="fw-bold text-danger">計算中...</span>
+                    </div>
+                    <!-- 固定兌換率 -->
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-muted">1 USD = 5 NKUST</span>
+                        <span class="fw-bold text-secondary">固定匯率</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -490,7 +494,6 @@ const WEATHER_API_KEY = "db68851cff88bbfaf24ddcefbccb2a18";
 let globalEstimatedEth = "0";
 let currentUsdToTwd    = 32.5;
 let currentEthUsdPrice = 0;
-let payMode            = "nkust"; // "nkust" | "eth"
 let selectedBikeId     = null;
 let feeTimer           = null;
 let rentStartTs        = 0;
@@ -770,16 +773,7 @@ function updateFeeDisplay() {
     document.getElementById('feeProgressBar').style.width = Math.min(fee / DAILY_MAX * 100, 100) + "%";
 }
 
-// =============================================
-// 付款模式切換
-// =============================================
-function selectPayMode(mode) {
-    payMode = mode;
-    document.getElementById('tab-nkust').classList.toggle('active', mode === 'nkust');
-    document.getElementById('tab-eth').classList.toggle('active',   mode === 'eth');
-    document.getElementById('nkust-controls').style.display = mode === 'nkust' ? 'block' : 'none';
-    document.getElementById('eth-controls').style.display   = mode === 'eth'   ? 'block' : 'none';
-}
+
 
 // =============================================
 // 授權
@@ -813,22 +807,10 @@ async function handleRent() {
         const signer = provider.getSigner();
         const bike   = new ethers.Contract(bikeAddr, bikeAbi, signer);
 
-        if (payMode === 'eth') {
-            // 取得押金 ETH 金額
-            const depositNkust = await bike.DEPOSIT_NKUST();
-            const nkustPerEth  = await bike.nkustPerEth();
-            const depositEth   = depositNkust.div(nkustPerEth);
-            // 加一點 buffer 防止匯率誤差
-            const depositEthWithBuffer = depositEth.mul(105).div(100);
-
-            const tx = await bike.rentWithEth(selectedBikeId, { value: depositEthWithBuffer });
-            alert("⏳ 租車交易送出...");
-            await tx.wait();
-        } else {
-            const tx = await bike.rentWithNkust(selectedBikeId);
-            alert("⏳ 租車交易送出...");
-            await tx.wait();
-        }
+        // 僅接受 NKUST 付押金
+        const tx = await bike.rentWithNkust(selectedBikeId);
+        alert("⏳ 租車交易送出...");
+        await tx.wait();
 
         alert("✅ 租車成功！押金已扣除，開始計時。");
         selectedBikeId = null;
@@ -858,26 +840,14 @@ async function handleReturn() {
 
         // 加 5% buffer（避免時間差導致不足）
         const feeNkustBuffer = feeNkust.mul(105).div(100);
-        const feeEthBuffer   = feeEth.mul(105).div(100);
 
-        const bikeInfo = await bikeContract.getBike(bikeId);
-        const wasEth   = bikeInfo.paidWithEth;
-
-        const feeDisplay = wasEth
-            ? parseFloat(ethers.utils.formatEther(feeEth)).toFixed(6) + " ETH"
-            : Math.ceil(parseFloat(ethers.utils.formatUnits(feeNkust, 18))) + " NKUST";
-
+        const feeDisplay = Math.ceil(parseFloat(ethers.utils.formatUnits(feeNkust, 18))) + " NKUST";
         if (!confirm(`還車費用約 ${feeDisplay}，確認還車並付款？`)) return;
 
-        if (wasEth) {
-            const tx = await bikeContract.returnWithEth(bikeId, { value: feeEthBuffer });
-            alert("⏳ 還車交易送出...");
-            await tx.wait();
-        } else {
-            const tx = await bikeContract.returnWithNkust(bikeId);
-            alert("⏳ 還車交易送出...");
-            await tx.wait();
-        }
+        // 僅接受 NKUST 付費
+        const tx = await bikeContract.returnWithNkust(bikeId);
+        alert("⏳ 還車交易送出...");
+        await tx.wait();
 
         stopFeeTimer();
         alert("✅ 還車成功！押金已退回。");
@@ -905,6 +875,20 @@ async function handleBuyTokens() {
 }
 
 // =============================================
+// 天氣
+// =============================================
+const WEATHER_API_KEY = "db68851cff88bbfaf24ddcefbccb2a18";
+
+async function updateWeather(city) {
+    try {
+        const res  = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${WEATHER_API_KEY}&units=metric&lang=zh_tw`);
+        const data = await res.json();
+        document.getElementById('cityName').innerText = city === 'Taipei' ? "台北市" : "高雄市";
+        document.getElementById('cityTemp').innerText = Math.round(data.main.temp) + "°C";
+    } catch (e) { console.error("天氣更新失敗"); }
+}
+
+// =============================================
 // 匯率
 // =============================================
 function calculateRealtimeEth() {
@@ -914,8 +898,9 @@ function calculateRealtimeEth() {
     if (amount <= 0 || currentEthUsdPrice === 0) {
         globalEstimatedEth = "0"; quoteEl.innerHTML = "請輸入欲購買數量"; return;
     }
-    globalEstimatedEth = ((amount / currentUsdToTwd) / currentEthUsdPrice).toFixed(15);
-    quoteEl.innerHTML = `需支付約 <span class="text-danger fw-bold">${globalEstimatedEth} ETH</span>`;
+    // 1 USD = 5 NKUST，所以 N 顆 NKUST = N/5 USD = (N/5)/ethUsdPrice ETH
+    globalEstimatedEth = ((amount / 5) / currentEthUsdPrice).toFixed(15);
+    quoteEl.innerHTML = `需支付約 <span class="text-danger fw-bold">${globalEstimatedEth} ETH</span>（1 USD = 5 NKUST）`;
 }
 
 async function fetchEthPrice() {
@@ -926,10 +911,10 @@ async function fetchEthPrice() {
         const ethRes  = await fetch("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD");
         const ethData = await ethRes.json();
         currentEthUsdPrice = ethData.USD;
-        const ethEl = document.getElementById('ethUsdDisplay');
-        const twdEl = document.getElementById('twdToEthDisplay');
-        if (ethEl) ethEl.innerText = "$ " + currentEthUsdPrice.toLocaleString();
-        if (twdEl) twdEl.innerText = ((100 / currentUsdToTwd) / currentEthUsdPrice).toFixed(8) + " ETH";
+        const ethEl    = document.getElementById('ethUsdDisplay');
+        const usdEthEl = document.getElementById('usdToEthDisplay');
+        if (ethEl)    ethEl.innerText    = "$ " + currentEthUsdPrice.toLocaleString();
+        if (usdEthEl) usdEthEl.innerText = (1 / currentEthUsdPrice).toFixed(8) + " ETH";
 
         // 更新 ETH 押金顯示
         if (currentEthUsdPrice > 0 && currentUsdToTwd > 0) {
@@ -1011,6 +996,7 @@ async function startApp() {
         document.getElementById('mobileGuide').style.display = 'block';
     }
 
+    await updateWeather('Kaohsiung');
     await fetchEthPrice();
     document.getElementById('buyAmount')?.addEventListener('input', calculateRealtimeEth);
 
