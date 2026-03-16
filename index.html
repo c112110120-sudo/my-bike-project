@@ -239,20 +239,63 @@
                     </div>
                 </div>
                 <div class="pt-2 border-top">
-                    <div class="d-flex justify-content-between mb-1 small">
-                        <span class="text-muted">ETH 現價：</span>
-                        <span id="ethUsdDisplay" class="fw-bold text-success">載入中...</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-1 small">
-                        <span class="text-muted">1 ETH ≈</span>
-                        <span id="ethToNkustDisplay" class="fw-bold text-primary">計算中...</span>
-                    </div>
                     <div class="d-flex justify-content-between small">
-                        <span class="text-muted">TWD/USD：</span>
-                        <span id="twdPerUsdDisplay" class="fw-bold text-secondary">計算中...</span>
+                        <span class="text-muted">1 NKUST 需付：</span>
+                        <span id="oneNkustEthDisplay" class="fw-bold text-danger">計算中...</span>
                     </div>
                 </div>
             </div>
+            <!-- Oracle 報價查詢 -->
+            <div class="glass">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span style="font-size:1.2rem;">⛓️</span>
+                    <h6 class="fw-bold m-0">Oracle 即時報價</h6>
+                    <span class="badge bg-primary" style="font-size:0.62rem;">Chainlink</span>
+                </div>
+
+                <div class="input-group input-group-sm mb-2">
+                    <span class="input-group-text">NKUST</span>
+                    <input type="number" id="quoteInput" class="form-control" placeholder="輸入數量" min="1" value="100">
+                    <button class="btn btn-primary fw-bold" onclick="queryGetQuote()">查詢</button>
+                </div>
+
+                <div id="quoteLoading" style="display:none;text-align:center;padding:10px;font-size:0.82rem;color:#64748b;">
+                    <div class="spinner-border spinner-border-sm me-1" role="status"></div>向 Chainlink 查詢中...
+                </div>
+
+                <div id="quoteError" style="display:none;" class="alert alert-danger py-2 px-3 small mb-0"></div>
+
+                <div id="quoteResult" style="display:none;">
+                    <!-- 三個數值卡 -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-12">
+                            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;text-align:center;">
+                                <div style="font-size:0.7rem;color:#1d4ed8;font-weight:700;margin-bottom:2px;">需支付 ETH</div>
+                                <div id="quoteEth" style="font-size:1.3rem;font-weight:700;color:#0284c7;">--</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:8px;text-align:center;">
+                                <div style="font-size:0.65rem;color:#166534;font-weight:700;margin-bottom:2px;">ETH/USD</div>
+                                <div id="quoteEthUsd" style="font-size:0.95rem;font-weight:700;color:#16a34a;">--</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:8px;text-align:center;">
+                                <div style="font-size:0.65rem;color:#9a3412;font-weight:700;margin-bottom:2px;">TWD/USD</div>
+                                <div id="quoteTwdUsd" style="font-size:0.95rem;font-weight:700;color:#ea580c;">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 計算過程 -->
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;font-size:0.78rem;color:#475569;">
+                        <div class="fw-bold mb-1" style="color:#1e293b;font-size:0.8rem;">📐 計算過程</div>
+                        <div id="quoteFormulaText">--</div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- ===== 右欄 ===== -->
@@ -392,6 +435,7 @@
                 </table>
             </div>
         </div>
+
     </div>
 
 </main>
@@ -715,13 +759,10 @@ async function calculateBuyQuote() {
         const usdDisplay   = (parseFloat(ethers.utils.formatUnits(ethUsdPrice, 18)) * parseFloat(globalEstimatedEth)).toFixed(2);
         quoteEl.innerHTML  = `需支付約 <span class="text-danger fw-bold">${ethDisplay} ETH</span>`;
 
-        // 同步更新顯示區
-        const ethUsdEl = document.getElementById('ethUsdDisplay');
-        const nkustEl  = document.getElementById('ethToNkustDisplay');
-        const twdEl    = document.getElementById('twdPerUsdDisplay');
-        if (ethUsdEl) ethUsdEl.innerText = "$ " + parseFloat(ethers.utils.formatUnits(ethUsdPrice, 18)).toLocaleString(undefined, {maximumFractionDigits:0});
-        if (nkustEl)  nkustEl.innerText  = (parseFloat(ethers.utils.formatUnits(ethUsdPrice, 18)) * twdPerUsdRate.toNumber()).toLocaleString() + " NKUST";
-        if (twdEl)    twdEl.innerText    = "1 USD = " + twdPerUsdRate.toString() + " TWD";
+        // 同步更新「1 NKUST 需付」顯示
+        const oneNkustEth2   = (parseFloat(ethers.utils.formatEther(ethWei)) / amount).toFixed(8);
+        const oneNkustEl2 = document.getElementById('oneNkustEthDisplay');
+        if (oneNkustEl2) oneNkustEl2.innerText = oneNkustEth2 + " ETH";
     } catch (e) {
         quoteEl.innerHTML = `<span class="text-danger">匯率查詢失敗，請確認網路</span>`;
         console.error("getQuote 失敗:", e);
@@ -762,16 +803,10 @@ async function updateOracleDisplay(provider) {
         const oneNkust = ethers.utils.parseUnits("1", 18);
         const [, ethUsdPrice, twdPerUsdRate] = await bike.getQuote(oneNkust);
 
-        const ethUsdNum   = parseFloat(ethers.utils.formatUnits(ethUsdPrice, 18));
-        const twdPerUsdNum = twdPerUsdRate.toNumber();
-        const nkustPerEth = ethUsdNum * twdPerUsdNum;
-
-        const ethUsdEl = document.getElementById('ethUsdDisplay');
-        const nkustEl  = document.getElementById('ethToNkustDisplay');
-        const twdEl    = document.getElementById('twdPerUsdDisplay');
-        if (ethUsdEl) ethUsdEl.innerText = "$ " + ethUsdNum.toLocaleString(undefined, {maximumFractionDigits:0});
-        if (nkustEl)  nkustEl.innerText  = nkustPerEth.toLocaleString(undefined, {maximumFractionDigits:0}) + " NKUST";
-        if (twdEl)    twdEl.innerText    = "1 USD = " + twdPerUsdNum + " TWD";
+        // 用 1 NKUST 查報價，直接顯示 1 NKUST 需付多少 ETH
+        const oneNkustEth    = parseFloat(ethers.utils.formatEther(ethWei)).toFixed(8);
+        const oneNkustEl = document.getElementById('oneNkustEthDisplay');
+        if (oneNkustEl) oneNkustEl.innerText = oneNkustEth + " ETH";
     } catch (e) { console.error("Oracle 顯示更新失敗:", e); }
 }
 
@@ -852,6 +887,61 @@ async function startApp() {
         } catch(e) {}
         window.ethereum.on('accountsChanged', () => location.reload());
         window.ethereum.on('chainChanged',    () => location.reload());
+    }
+}
+
+// ===== getQuote Oracle 展示 =====
+async function queryGetQuote() {
+    const amount   = parseFloat(document.getElementById('quoteInput').value) || 0;
+    const resultEl = document.getElementById('quoteResult');
+    const loadEl   = document.getElementById('quoteLoading');
+    const errorEl  = document.getElementById('quoteError');
+
+    if (amount <= 0) { alert("請輸入有效數量"); return; }
+
+    resultEl.style.display  = 'none';
+    errorEl.style.display   = 'none';
+    loadEl.style.display    = 'block';
+
+    try {
+        const provider = getProvider(); if (!provider) return;
+        const bike     = new ethers.Contract(bikeAddr, bikeAbi, provider);
+        const nkustWei = ethers.utils.parseUnits(String(amount), 18);
+
+        // 呼叫合約 getQuote()
+        const [ethWei, ethUsdPrice, twdPerUsdRate] = await bike.getQuote(nkustWei);
+
+        // 解析數值
+        const ethAmount    = parseFloat(ethers.utils.formatEther(ethWei));
+        const ethUsdNum    = parseFloat(ethers.utils.formatUnits(ethUsdPrice, 18));
+        const twdPerUsdNum = twdPerUsdRate.toNumber();
+
+        // 更新顯示
+        document.getElementById('quoteEth').innerText    = ethAmount.toFixed(8) + " ETH";
+        document.getElementById('quoteEthUsd').innerText = "$ " + ethUsdNum.toLocaleString(undefined, {maximumFractionDigits: 2});
+        document.getElementById('quoteTwdUsd').innerText = "1 USD = " + twdPerUsdNum + " TWD";
+
+        // 原始值
+        document.getElementById('rawEthWei').innerText = ethWei.toString() + " wei";
+        document.getElementById('rawEthUsd').innerText = ethUsdPrice.toString();
+        document.getElementById('rawTwdUsd').innerText = twdPerUsdRate.toString();
+
+        // 計算公式說明
+        const formulaText = `
+            ${amount} NKUST × (1 TWD / 1 NKUST) = ${amount} TWD<br>
+            ${amount} TWD ÷ ${twdPerUsdNum} = ${(amount / twdPerUsdNum).toFixed(4)} USD<br>
+            ${(amount / twdPerUsdNum).toFixed(4)} USD ÷ $${ethUsdNum.toFixed(2)} = <strong style="color:#0284c7">${ethAmount.toFixed(8)} ETH</strong>
+        `;
+        document.getElementById('quoteFormulaText').innerHTML = formulaText;
+
+        loadEl.style.display   = 'none';
+        resultEl.style.display = 'block';
+
+    } catch (e) {
+        loadEl.style.display  = 'none';
+        errorEl.style.display = 'block';
+        errorEl.innerText     = "查詢失敗：" + (e.reason || e.message);
+        console.error("getQuote error:", e);
     }
 }
 
