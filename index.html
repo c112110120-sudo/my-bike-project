@@ -243,9 +243,13 @@
                         <span class="text-muted">ETH 現價：</span>
                         <span id="ethUsdDisplay" class="fw-bold text-success">載入中...</span>
                     </div>
-                    <div class="d-flex justify-content-between small">
+                    <div class="d-flex justify-content-between mb-1 small">
                         <span class="text-muted">1 ETH ≈</span>
                         <span id="ethToNkustDisplay" class="fw-bold text-primary">計算中...</span>
+                    </div>
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-muted">TWD/USD：</span>
+                        <span id="twdPerUsdDisplay" class="fw-bold text-secondary">計算中...</span>
                     </div>
                 </div>
             </div>
@@ -405,23 +409,24 @@ const erc20Abi = [
 const bikeAbi = [
     "function rentWithNkust(uint8 bikeId)",
     "function returnWithNkust(uint8 bikeId)",
+    "function buyTokens(uint256 nkustAmount) payable",
     "function getAllBikes() view returns (uint8[] ids, bool[] available, address[] renters, uint256[] startTimes)",
-    "function getBike(uint8 bikeId) view returns (bool isAvailable, address renter, uint256 rentStartTime, bool paidWithEth)",
-    "function estimateFee(address user) view returns (uint256 feeNkust, uint256 feeEth)",
+    "function getBike(uint8 bikeId) view returns (bool isAvailable, address renter, uint256 rentStartTime)",
+    "function estimateFee(address user) view returns (uint256 feeNkust)",
+    "function getQuote(uint256 nkustWei) view returns (uint256 ethWei, uint256 ethUsdPrice, uint256 twdPerUsdRate)",
     "function getAllUsers() view returns (address[])",
     "function users(address user) view returns (uint256 lastRentDay, uint256 feePaidToday, uint256 currentBikeId, bool hasActiveRental)",
-    "function nkustPerEth() view returns (uint256)"
+    "function twdPerUsd() view returns (uint256)"
 ];
 
 // ===== 設定 =====
 const ADMIN_PASSWORD  = "nkust";
-const nkustAddr       = "0x826f67ce00E5b17450E67Ed2b227320A2E470d8E";
-const bikeAddr        = "0x92E381e7Cf34505f78a49B5C73272d2d6a171455";
+const nkustAddr       = "0xC5C6Bc61a1146a745FA2fa6D300e45A76B8d1Cb4";
+const bikeAddr        = "0x3c179a0a8b87fa51aDd841194A2C5502c733b6d7";
 const WEATHER_API_KEY = "db68851cff88bbfaf24ddcefbccb2a18";
 
-let currentEthUsdPrice = 0;   // ETH 現價（USD）
-let nkustPerEthRate    = 0;   // 1 ETH = N NKUST（從合約讀取）
-let globalEstimatedEth = "0"; // 購幣時需支付的 ETH
+let currentEthUsdPrice = 0;   // ETH 現價（USD，從合約 Oracle 讀取）
+let globalEstimatedEth = "0"; // 購幣時需支付的 ETH（從合約 getQuote 讀取）
 let selectedBikeId     = null;
 let feeTimer           = null;
 let rentStartTs        = 0;
@@ -533,14 +538,8 @@ async function init(provider) {
             appBtn.disabled  = true;
         }
 
-        // 從合約讀取匯率
-        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
-        const npe  = await bike.nkustPerEth();
-        nkustPerEthRate = npe.toNumber();
-        updateEthToNkustDisplay();
-
-        // 更新購幣換算
-        calculateBuyQuote();
+        // 從合約 Oracle 讀取即時匯率並更新顯示
+        await updateOracleDisplay(provider);
 
         // 車輛 + 租借狀態
         await loadBikes(provider, user);
@@ -683,7 +682,7 @@ async function handleReturn() {
         if (!userInfo.hasActiveRental) { alert("目前沒有租借中的車輛"); return; }
         const bikeId = userInfo.currentBikeId.toNumber();
 
-        const [feeNkust] = await bikeContract.estimateFee(user);
+        const feeNkust = await bikeContract.estimateFee(user);
         const feeDisplay = Math.ceil(parseFloat(ethers.utils.formatUnits(feeNkust, 18))) + " NKUST";
         if (!confirm(`還車費用約 ${feeDisplay}，確認還車並付款？`)) return;
 
@@ -696,32 +695,57 @@ async function handleReturn() {
     } catch (e) { alert("還車失敗：" + (e.data?.message || e.reason || e.message)); }
 }
 
-// ===== 購幣換算（ETH 數量） =====
-function calculateBuyQuote() {
+// ===== 購幣換算：呼叫合約 getQuote（使用 Chainlink Oracle）=====
+async function calculateBuyQuote() {
     const amount  = parseFloat(document.getElementById('buyAmount')?.value) || 0;
     const quoteEl = document.getElementById('ethQuote');
     if (!quoteEl) return;
-    if (amount <= 0 || nkustPerEthRate === 0) {
+    if (amount <= 0) {
         globalEstimatedEth = "0";
         quoteEl.innerHTML = "請輸入欲購買數量";
         return;
     }
-    // N NKUST = N / nkustPerEthRate ETH
-    const ethNeeded = amount / nkustPerEthRate;
-    globalEstimatedEth = ethNeeded.toFixed(15);
-    quoteEl.innerHTML = `需支付約 <span class="text-danger fw-bold">${ethNeeded.toFixed(8)} ETH</span>`;
+    try {
+        const provider = getProvider(); if (!provider) return;
+        const bike     = new ethers.Contract(bikeAddr, bikeAbi, provider);
+        const nkustWei = ethers.utils.parseUnits(String(amount), 18);
+        const [ethWei, ethUsdPrice, twdPerUsdRate] = await bike.getQuote(nkustWei);
+        globalEstimatedEth = ethers.utils.formatEther(ethWei);
+        const ethDisplay   = parseFloat(globalEstimatedEth).toFixed(8);
+        const usdDisplay   = (parseFloat(ethers.utils.formatUnits(ethUsdPrice, 18)) * parseFloat(globalEstimatedEth)).toFixed(2);
+        quoteEl.innerHTML  = `需支付約 <span class="text-danger fw-bold">${ethDisplay} ETH</span>`;
+
+        // 同步更新顯示區
+        const ethUsdEl = document.getElementById('ethUsdDisplay');
+        const nkustEl  = document.getElementById('ethToNkustDisplay');
+        const twdEl    = document.getElementById('twdPerUsdDisplay');
+        if (ethUsdEl) ethUsdEl.innerText = "$ " + parseFloat(ethers.utils.formatUnits(ethUsdPrice, 18)).toLocaleString(undefined, {maximumFractionDigits:0});
+        if (nkustEl)  nkustEl.innerText  = (parseFloat(ethers.utils.formatUnits(ethUsdPrice, 18)) * twdPerUsdRate.toNumber()).toLocaleString() + " NKUST";
+        if (twdEl)    twdEl.innerText    = "1 USD = " + twdPerUsdRate.toString() + " TWD";
+    } catch (e) {
+        quoteEl.innerHTML = `<span class="text-danger">匯率查詢失敗，請確認網路</span>`;
+        console.error("getQuote 失敗:", e);
+    }
 }
 
-// ===== 購幣 =====
+// ===== 購幣：直接呼叫 NKUSTBike.buyTokens（Oracle 定價）=====
 async function handleBuyTokens() {
     const provider = getProvider(); if (!provider) return;
     const amount   = document.getElementById('buyAmount').value;
     if (!amount || parseFloat(amount) <= 0) { alert("請輸入有效數量"); return; }
-    if (!globalEstimatedEth || globalEstimatedEth === "0") { alert("匯率尚未載入，請稍後"); return; }
+    if (!globalEstimatedEth || globalEstimatedEth === "0") {
+        alert("請先輸入數量取得報價");
+        return;
+    }
     try {
-        const signer = provider.getSigner();
-        const token  = new ethers.Contract(nkustAddr, erc20Abi, signer);
-        const tx     = await token.buyTokens(amount, { value: ethers.utils.parseEther(globalEstimatedEth) });
+        const signer   = provider.getSigner();
+        const bike     = new ethers.Contract(bikeAddr, bikeAbi, signer);
+        // 重新向合約取得最新報價（避免前端估算過時）
+        const nkustWei = ethers.utils.parseUnits(String(amount), 18);
+        const [ethWei] = await bike.getQuote(nkustWei);
+        // 加 1% buffer 防止 Oracle 時間差
+        const ethWithBuffer = ethWei.mul(101).div(100);
+        const tx = await bike.buyTokens(amount, { value: ethWithBuffer });
         alert("⏳ 購幣中...");
         await tx.wait();
         alert("✅ 成功購買 " + amount + " NKUST！");
@@ -729,22 +753,26 @@ async function handleBuyTokens() {
     } catch (e) { alert("購幣失敗：" + (e.reason || e.message)); }
 }
 
-// ===== ETH 現價（只顯示，不做換算） =====
-function updateEthToNkustDisplay() {
-    const el = document.getElementById('ethToNkustDisplay');
-    if (el && nkustPerEthRate > 0) {
-        el.innerText = nkustPerEthRate.toLocaleString() + " NKUST";
-    }
-}
-
-async function fetchEthPrice() {
+// ===== Oracle 顯示更新（讀合約，不另外呼叫外部 API）=====
+async function updateOracleDisplay(provider) {
     try {
-        const res  = await fetch("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD");
-        const data = await res.json();
-        currentEthUsdPrice = data.USD;
-        const el = document.getElementById('ethUsdDisplay');
-        if (el) el.innerText = "$ " + currentEthUsdPrice.toLocaleString();
-    } catch (e) { console.error("ETH 現價更新失敗"); }
+        provider = provider || getProvider(); if (!provider) return;
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
+        // 用 1 NKUST 查詢報價，目的是取得當前 Oracle 價格
+        const oneNkust = ethers.utils.parseUnits("1", 18);
+        const [, ethUsdPrice, twdPerUsdRate] = await bike.getQuote(oneNkust);
+
+        const ethUsdNum   = parseFloat(ethers.utils.formatUnits(ethUsdPrice, 18));
+        const twdPerUsdNum = twdPerUsdRate.toNumber();
+        const nkustPerEth = ethUsdNum * twdPerUsdNum;
+
+        const ethUsdEl = document.getElementById('ethUsdDisplay');
+        const nkustEl  = document.getElementById('ethToNkustDisplay');
+        const twdEl    = document.getElementById('twdPerUsdDisplay');
+        if (ethUsdEl) ethUsdEl.innerText = "$ " + ethUsdNum.toLocaleString(undefined, {maximumFractionDigits:0});
+        if (nkustEl)  nkustEl.innerText  = nkustPerEth.toLocaleString(undefined, {maximumFractionDigits:0}) + " NKUST";
+        if (twdEl)    twdEl.innerText    = "1 USD = " + twdPerUsdNum + " TWD";
+    } catch (e) { console.error("Oracle 顯示更新失敗:", e); }
 }
 
 // ===== 天氣 =====
@@ -813,7 +841,6 @@ async function refreshAdminData() {
 async function startApp() {
     if (isMobile && !hasEthereum) document.getElementById('mobileGuide').style.display = 'block';
     await updateWeather('Kaohsiung');
-    await fetchEthPrice();
     document.getElementById('buyAmount')?.addEventListener('input', calculateBuyQuote);
     if (hasEthereum) {
         try {
@@ -829,7 +856,7 @@ async function startApp() {
 }
 
 window.addEventListener('load', startApp);
-setInterval(fetchEthPrice, 60000);
+// Oracle 匯率從合約即時讀取，無需 setInterval
 setInterval(async () => {
     if (window._provider) {
         try {
