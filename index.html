@@ -921,11 +921,6 @@ async function queryGetQuote() {
         document.getElementById('quoteEthUsd').innerText = "$ " + ethUsdNum.toLocaleString(undefined, {maximumFractionDigits: 2});
         document.getElementById('quoteTwdUsd').innerText = "1 USD = " + twdPerUsdNum + " TWD";
 
-        // 原始值
-        document.getElementById('rawEthWei').innerText = ethWei.toString() + " wei";
-        document.getElementById('rawEthUsd').innerText = ethUsdPrice.toString();
-        document.getElementById('rawTwdUsd').innerText = twdPerUsdRate.toString();
-
         // 計算公式說明
         const formulaText = `
             ${amount} NKUST × (1 TWD / 1 NKUST) = ${amount} TWD<br>
