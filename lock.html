@@ -6,7 +6,6 @@
     <title>SmartBike 智慧鎖</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-    <!-- QR Code 掃描 -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -15,194 +14,196 @@
             background: #0a0f1e;
             color: white;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             padding: 20px;
         }
 
-        .card {
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 960px;
+            margin: 0 auto 20px;
+            padding: 14px 20px;
             background: #111827;
-            border-radius: 24px;
-            padding: 32px 24px;
-            width: 100%;
-            max-width: 380px;
+            border-radius: 16px;
             border: 1px solid #1f2937;
         }
-
-        .title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #94a3b8;
-            text-align: center;
-            margin-bottom: 6px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
+        .top-title { font-size: 1rem; font-weight: 700; color: #94a3b8; letter-spacing: 2px; }
+        .wallet-badge {
+            font-size: 0.78rem; color: #38bdf8;
+            background: #0c1a2e; padding: 6px 12px;
+            border-radius: 20px; border: 1px solid #1e3a5f;
         }
-
-        /* ===== 鎖狀態大圖示 ===== */
-        .lock-display {
-            text-align: center;
-            padding: 32px 0;
-        }
-        .lock-icon {
-            font-size: 6rem;
-            line-height: 1;
-            margin-bottom: 16px;
-            transition: all 0.5s;
-        }
-        .lock-status {
-            font-size: 1.8rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-        }
-        .lock-status.locked   { color: #ef4444; }
-        .lock-status.unlocked { color: #22c55e; }
-        .lock-status.waiting  { color: #f59e0b; }
-
-        .bike-label {
-            font-size: 0.9rem;
-            color: #64748b;
-            margin-top: 8px;
-            text-align: center;
-        }
-
-        /* ===== 連接區 ===== */
-        .section { margin-bottom: 20px; }
-        .section-title {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 14px;
-            border-radius: 12px;
-            border: none;
-            font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
+        .btn-connect-top {
+            background: linear-gradient(135deg,#0d9488,#0284c7);
+            color: white; border: none; font-weight: 700;
+            font-size: 0.82rem; padding: 8px 18px;
+            border-radius: 20px; cursor: pointer;
             font-family: 'Noto Sans TC', sans-serif;
-            transition: all 0.2s;
-            margin-bottom: 10px;
         }
-        .btn-connect  { background: linear-gradient(135deg,#0d9488,#0284c7); color: white; }
-        .btn-scan     { background: #1d4ed8; color: white; }
-        .btn-bind     { background: #16a34a; color: white; }
-        .btn-disabled { background: #1f2937; color: #475569; cursor: not-allowed; }
-        .btn:hover:not(.btn-disabled) { opacity: 0.9; transform: translateY(-1px); }
 
-        /* ===== 狀態列 ===== */
-        .status-bar {
-            background: #0f172a;
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 16px;
-            font-size: 0.82rem;
-            color: #64748b;
-            border: 1px solid #1e293b;
+        /* ===== 車輛格子 ===== */
+        .bikes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 14px;
+            max-width: 960px;
+            margin: 0 auto 20px;
         }
-        .status-bar span { color: #38bdf8; font-weight: 600; }
 
-        /* ===== QR Scanner ===== */
-        #qr-reader {
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 10px;
+        .bike-card {
+            background: #111827;
+            border-radius: 18px;
+            padding: 20px 14px;
+            text-align: center;
+            border: 2px solid #1f2937;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .bike-card.locked   { border-color: #ef4444; }
+        .bike-card.unlocked { border-color: #22c55e; background: #052e16; }
+        .bike-card.unbound  { border-color: #374151; opacity: 0.5; }
+
+        .bike-lock-icon { font-size: 2.8rem; margin-bottom: 8px; transition: all 0.4s; }
+        .bike-id-label  { font-size: 0.82rem; font-weight: 700; color: #94a3b8; margin-bottom: 6px; }
+        .bike-status-text {
+            font-size: 0.78rem; font-weight: 700; letter-spacing: 1px;
+            padding: 3px 10px; border-radius: 20px; display: inline-block;
+        }
+        .status-locked   { background: rgba(239,68,68,0.2);  color: #f87171; }
+        .status-unlocked { background: rgba(34,197,94,0.2);  color: #4ade80; }
+        .status-unbound  { background: rgba(100,116,139,0.2); color: #94a3b8; }
+
+        .bind-btn {
+            margin-top: 10px; width: 100%; padding: 8px;
+            background: #16a34a; color: white; border: none;
+            border-radius: 8px; font-size: 0.78rem; font-weight: 700;
+            cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
             display: none;
+        }
+        .unbind-btn {
+            margin-top: 6px; width: 100%; padding: 6px;
+            background: transparent; color: #475569; border: 1px solid #374151;
+            border-radius: 8px; font-size: 0.72rem; cursor: pointer;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        /* ===== 加入車輛區 ===== */
+        .add-card {
+            background: #111827;
+            border-radius: 18px;
+            padding: 20px 14px;
+            text-align: center;
+            border: 2px dashed #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .add-card:hover { border-color: #4b5563; }
+        .add-icon { font-size: 2rem; color: #374151; margin-bottom: 8px; }
+        .add-label { font-size: 0.78rem; color: #475569; }
+
+        /* ===== QR 掃描彈窗 ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 9999;
+            justify-content: center; align-items: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: #111827; border-radius: 20px;
+            padding: 24px; width: 90%; max-width: 340px;
+            border: 1px solid #1f2937;
+        }
+        .modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; text-align: center; }
+        #qr-reader { border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+        .modal-btn {
+            width: 100%; padding: 12px; border-radius: 10px; border: none;
+            font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 8px;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .modal-btn-scan   { background: #1d4ed8; color: white; }
+        .modal-btn-cancel { background: #1f2937; color: #94a3b8; }
+        #qrManualInput {
+            width: 100%; padding: 10px; background: #0f172a; color: white;
+            border: 1px solid #374151; border-radius: 8px; font-size: 0.9rem;
+            margin-bottom: 8px; text-align: center;
         }
 
         /* ===== 事件紀錄 ===== */
+        .log-section {
+            max-width: 960px; margin: 0 auto;
+            background: #111827; border-radius: 16px;
+            padding: 16px; border: 1px solid #1f2937;
+        }
+        .log-title { font-size: 0.75rem; color: #475569; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         .log-box {
-            background: #0f172a;
-            border-radius: 10px;
-            padding: 12px;
-            max-height: 140px;
-            overflow-y: auto;
-            font-size: 0.75rem;
-            font-family: monospace;
-            border: 1px solid #1e293b;
+            max-height: 150px; overflow-y: auto;
+            font-size: 0.75rem; font-family: monospace;
         }
         .log-item { padding: 3px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; }
         .log-item.green  { color: #22c55e; }
         .log-item.red    { color: #ef4444; }
         .log-item.yellow { color: #f59e0b; }
 
-        /* ===== 動畫 ===== */
         @keyframes pulse-green {
             0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
-            50%     { box-shadow: 0 0 0 20px rgba(34,197,94,0); }
+            50%     { box-shadow: 0 0 0 12px rgba(34,197,94,0); }
         }
-        @keyframes pulse-red {
-            0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
-            50%     { box-shadow: 0 0 0 20px rgba(239,68,68,0); }
-        }
-        .pulse-green { animation: pulse-green 1.5s infinite; }
-        .pulse-red   { animation: pulse-red 2s infinite; }
+        .glow-green { animation: pulse-green 1.5s infinite; }
 
-        .divider { border: none; border-top: 1px solid #1f2937; margin: 20px 0; }
+        @media (max-width: 480px) {
+            .bikes-grid { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div class="title">🚲 SmartBike 智慧鎖</div>
-
-    <!-- 鎖狀態顯示 -->
-    <div class="lock-display">
-        <div class="lock-icon" id="lockIcon">🔒</div>
-        <div class="lock-status locked" id="lockStatus">已上鎖</div>
-        <div class="bike-label" id="bikeLabel">尚未綁定車輛</div>
+<!-- 頂部導覽列 -->
+<div class="top-bar">
+    <span class="top-title">🚲 SmartBike 智慧鎖</span>
+    <div id="walletArea">
+        <button class="btn-connect-top" onclick="connectWallet()">連接錢包</button>
     </div>
+</div>
 
-    <!-- 狀態列 -->
-    <div class="status-bar" id="statusBar">
-        錢包：<span id="walletShort">未連接</span>
+<!-- 車輛格子 -->
+<div class="bikes-grid" id="bikesGrid">
+    <!-- 動態生成 -->
+</div>
+
+<!-- 加入車輛按鈕 -->
+<div style="max-width:960px;margin:0 auto 20px;">
+    <div class="add-card" onclick="openAddModal()">
+        <div class="add-icon">＋</div>
+        <div class="add-label">綁定新車輛</div>
     </div>
+</div>
 
-    <!-- Step 1：連接錢包 -->
-    <div class="section" id="step1">
-        <div class="section-title">步驟 1 — 連接錢包</div>
-        <button class="btn btn-connect" onclick="connectWallet()">🦊 連接 MetaMask</button>
-    </div>
-
-    <!-- Step 2：掃 QR Code 綁定車輛 -->
-    <div class="section" id="step2" style="display:none;">
-        <div class="section-title">步驟 2 — 掃描車輛 QR Code</div>
-        <button class="btn btn-scan" onclick="startQrScan()" id="scanBtn">📷 掃描 QR Code</button>
-        <div id="qr-reader"></div>
-        <div id="qrResult" style="font-size:0.8rem;color:#94a3b8;text-align:center;display:none;"></div>
-        <button class="btn btn-bind" onclick="bindLock()" id="bindBtn" style="display:none;">
-            ⛓️ 綁定此車為智慧鎖
-        </button>
-    </div>
-
-    <!-- Step 3：監聽中 -->
-    <div class="section" id="step3" style="display:none;">
-        <div class="section-title">步驟 3 — 監聽合約事件</div>
-        <div style="font-size:0.82rem;color:#22c55e;text-align:center;padding:8px;background:#052e16;border-radius:8px;">
-            ✅ 已綁定，正在監聽租借事件...
-        </div>
-    </div>
-
-    <hr class="divider">
-
-    <!-- 事件紀錄 -->
-    <div class="section-title">事件紀錄</div>
+<!-- 事件紀錄 -->
+<div class="log-section">
+    <div class="log-title">事件紀錄</div>
     <div class="log-box" id="logBox">
-        <div class="log-item yellow">等待連接...</div>
+        <div class="log-item yellow">等待連接錢包...</div>
+    </div>
+</div>
+
+<!-- QR 掃描 / 手動輸入 Modal -->
+<div class="modal-overlay" id="addModal">
+    <div class="modal-box">
+        <div class="modal-title">綁定車輛</div>
+        <div id="qr-reader"></div>
+        <input type="number" id="qrManualInput" placeholder="或直接輸入車號（0～9）" min="0" max="9">
+        <button class="modal-btn modal-btn-scan" id="scanStartBtn" onclick="startQrScan()">📷 掃描 QR Code</button>
+        <button class="modal-btn" style="background:#16a34a;color:white;" onclick="confirmManualInput()">確認綁定</button>
+        <button class="modal-btn modal-btn-cancel" onclick="closeAddModal()">取消</button>
     </div>
 </div>
 
 <script>
 // ===== 合約設定 =====
-const bikeAddr   = "0xABC4511aA0351497006e717bf09714a6113C5def"; 
-const escrowAddr = "0xd08B9358f5Ee2b99aa75cCF9C8cA503561Dc9842"; 
+const bikeAddr   = "0xABC4511aA0351497006e717bf09714a6113C5def";
+const escrowAddr = "0xd08B9358f5Ee2b99aa75cCF9C8cA503561Dc9842";
 
 const bikeAbi = [
     "function registerLock(uint8 bikeId)",
@@ -212,14 +213,15 @@ const bikeAbi = [
 ];
 
 // ===== 狀態 =====
-let provider     = null;
-let signer       = null;
-let myAddress    = null;
-let boundBikeId  = null;
-let isLocked     = true;
-let qrScanner    = null;
-let scannedBikeId = null;
+let provider       = null;
+let signer         = null;
+let myAddress      = null;
+let qrScanner      = null;
 let eventListening = false;
+
+// boundBikes：紀錄這個錢包綁定的所有車
+// { bikeId: { locked: true/false } }
+let boundBikes = {};
 
 // ===== 工具 =====
 function addLog(msg, type = '') {
@@ -230,25 +232,11 @@ function addLog(msg, type = '') {
     box.prepend(item);
 }
 
-function setLockState(locked) {
-    isLocked = locked;
-    const icon   = document.getElementById('lockIcon');
-    const status = document.getElementById('lockStatus');
-
-    if (locked) {
-        icon.innerText     = '🔒';
-        icon.className     = 'lock-icon pulse-red';
-        status.innerText   = '已上鎖';
-        status.className   = 'lock-status locked';
-    } else {
-        icon.innerText     = '🔓';
-        icon.className     = 'lock-icon pulse-green';
-        status.innerText   = '已開鎖';
-        status.className   = 'lock-status unlocked';
-    }
+function bikeLabel(id) {
+    return `SB-${String(id + 1).padStart(3, '0')}`;
 }
 
-// ===== Step 1：連接錢包 =====
+// ===== 連接錢包 =====
 async function connectWallet() {
     if (!window.ethereum) {
         alert("請用 MetaMask App 內建瀏覽器開啟");
@@ -261,182 +249,202 @@ async function connectWallet() {
         myAddress = await signer.getAddress();
 
         const short = myAddress.substring(0,6) + "..." + myAddress.substring(myAddress.length-4);
-        document.getElementById('walletShort').innerText = short;
-        document.getElementById('step1').style.display  = 'none';
-        document.getElementById('step2').style.display  = 'block';
+        document.getElementById('walletArea').innerHTML =
+            `<span class="wallet-badge">✅ ${short}</span>`;
 
         addLog("錢包已連接：" + short, "green");
 
-        // 檢查此錢包是否已綁定某台車
-        await checkExistingBind();
+        // 掃描合約，找出這個錢包綁定的所有車
+        await scanBoundBikes();
+
+        // 開始監聽所有已綁定的車
+        startListening();
+
+        // 檢查網址有沒有 ?bike=N 自動帶入
+        autoLoadFromUrl();
 
     } catch(e) { alert("連接失敗：" + e.message); }
 }
 
-// 檢查是否已綁定車輛
-async function checkExistingBind() {
+// ===== 掃描合約找已綁定的車 =====
+async function scanBoundBikes() {
     try {
         const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
-        // 掃描全部 10 台車
         for (let i = 0; i < 10; i++) {
             const info = await bike.getBike(i);
             if (info.lockBound && info.lockAddress.toLowerCase() === myAddress.toLowerCase()) {
-                boundBikeId = i;
-                document.getElementById('bikeLabel').innerText = `已綁定：SB-${String(i+1).padStart(3,'0')}`;
-                document.getElementById('step2').style.display = 'none';
-                document.getElementById('step3').style.display = 'block';
-                addLog(`偵測到已綁定車輛 SB-${String(i+1).padStart(3,'0')}`, "yellow");
-                startListening();
-                return;
+                boundBikes[i] = { locked: info.isAvailable }; // isAvailable = 沒人租 = 鎖住
+                renderBikeCard(i, info.isAvailable);
+                addLog(`偵測到已綁定：${bikeLabel(i)}`, "yellow");
             }
         }
-    } catch(e) { console.error("檢查綁定失敗:", e); }
-}
-
-// ===== Step 2：QR Code 掃描 =====
-function startQrScan() {
-    const readerEl = document.getElementById('qr-reader');
-    readerEl.style.display = 'block';
-    document.getElementById('scanBtn').style.display = 'none';
-
-    qrScanner = new Html5Qrcode("qr-reader");
-    qrScanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-            // QR Code 格式：smartbike://bike/0  (車號)
-            qrScanner.stop();
-            readerEl.style.display = 'none';
-            parseQrCode(decodedText);
-        },
-        (err) => {}
-    ).catch(e => alert("相機啟動失敗：" + e));
-}
-
-function parseQrCode(text) {
-    // 支援三種格式：
-    // 1. https://...lock.html?bike=0  （新格式，掃碼直接開頁面）
-    // 2. smartbike://bike/0
-    // 3. 直接是數字（例如：0）
-    let bikeId = null;
-
-    try {
-        const url   = new URL(text);
-        const param = url.searchParams.get('bike');
-        if (param !== null) bikeId = parseInt(param);
-    } catch(e) {}
-
-    if (bikeId === null) {
-        const match = text.match(/smartbike:\/\/bike\/(\d+)/);
-        if (match) bikeId = parseInt(match[1]);
-    }
-    if (bikeId === null && /^\d+$/.test(text.trim())) {
-        bikeId = parseInt(text.trim());
-    }
-
-    if (bikeId === null || bikeId < 0 || bikeId > 9) {
-        addLog("無效的 QR Code：" + text, "red");
-        document.getElementById('scanBtn').style.display = 'block';
-        return;
-    }
-
-    scannedBikeId = bikeId;
-    const label   = `SB-${String(bikeId+1).padStart(3,'0')}`;
-
-    document.getElementById('qrResult').style.display  = 'block';
-    document.getElementById('qrResult').innerText      = `✅ 掃描成功：${label}`;
-    document.getElementById('bindBtn').style.display   = 'block';
-    document.getElementById('bikeLabel').innerText     = `準備綁定：${label}`;
-
-    addLog("掃描成功：" + label, "green");
-}
-
-// ===== 綁定車輛 =====
-async function bindLock() {
-    if (scannedBikeId === null) return;
-    try {
-        const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
-
-        // 先確認這台車還沒有被綁定
-        const info = await bike.getBike(scannedBikeId);
-        if (info.lockBound) {
-            addLog("此車已被其他鎖綁定，請聯絡管理員", "red");
-            alert("此車已被綁定，請聯絡管理員解除後再試。");
-            return;
+        if (Object.keys(boundBikes).length === 0) {
+            addLog("尚未綁定任何車輛，請點「綁定新車輛」", "yellow");
         }
+    } catch(e) { console.error("掃描綁定失敗:", e); }
+}
 
-        const tx = await bike.registerLock(scannedBikeId);
-        addLog("綁定交易送出，等待確認...", "yellow");
-        await tx.wait();
+// ===== 渲染單張車輛卡片 =====
+function renderBikeCard(bikeId, isLocked) {
+    const grid    = document.getElementById('bikesGrid');
+    const existing = document.getElementById(`bike-card-${bikeId}`);
+    if (existing) existing.remove();
 
-        boundBikeId = scannedBikeId;
-        const label = `SB-${String(scannedBikeId+1).padStart(3,'0')}`;
+    const card = document.createElement('div');
+    card.id        = `bike-card-${bikeId}`;
+    card.className = `bike-card ${isLocked ? 'locked' : 'unlocked'}`;
+    card.innerHTML = `
+        <div class="bike-lock-icon" id="lock-icon-${bikeId}">${isLocked ? '🔒' : '🔓'}</div>
+        <div class="bike-id-label">${bikeLabel(bikeId)}</div>
+        <span class="bike-status-text ${isLocked ? 'status-locked' : 'status-unlocked'}" id="lock-status-${bikeId}">
+            ${isLocked ? '已上鎖' : '已開鎖'}
+        </span>
+        <button class="unbind-btn" onclick="unbindConfirm(${bikeId})">解除綁定</button>
+    `;
+    grid.prepend(card);
+}
 
-        document.getElementById('bikeLabel').innerText     = `已綁定：${label}`;
-        document.getElementById('step2').style.display     = 'none';
-        document.getElementById('step3').style.display     = 'block';
-        document.getElementById('bindBtn').style.display   = 'none';
-        document.getElementById('qrResult').style.display  = 'none';
+// ===== 更新卡片狀態 =====
+function updateBikeCard(bikeId, isLocked) {
+    const card   = document.getElementById(`bike-card-${bikeId}`);
+    const icon   = document.getElementById(`lock-icon-${bikeId}`);
+    const status = document.getElementById(`lock-status-${bikeId}`);
+    if (!card) return;
 
-        addLog(`✅ 綁定成功：${label}`, "green");
-        startListening();
+    card.className   = `bike-card ${isLocked ? 'locked' : 'unlocked glow-green'}`;
+    icon.innerText   = isLocked ? '🔒' : '🔓';
+    status.className = `bike-status-text ${isLocked ? 'status-locked' : 'status-unlocked'}`;
+    status.innerText = isLocked ? '已上鎖' : '已開鎖';
 
-    } catch(e) { addLog("綁定失敗：" + (e.reason || e.message), "red"); }
+    if (navigator.vibrate) navigator.vibrate(isLocked ? [500] : [200, 100, 200]);
 }
 
 // ===== 監聽合約事件 =====
 function startListening() {
-    if (eventListening || boundBikeId === null) return;
+    if (eventListening || !provider) return;
     eventListening = true;
 
     const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
 
-    // 監聽租車事件 → 開鎖
-    bike.on("BikeRented", (user, bikeId, deposit, event) => {
-        if (bikeId !== boundBikeId) return;
-        addLog(`租車事件：${user.substring(0,8)}... 租了此車`, "yellow");
-        setLockState(false); // 開鎖
-        addLog("🔓 智慧鎖已開啟", "green");
-
-        // 震動提示（手機支援）
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    bike.on("BikeRented", (user, bikeId, deposit) => {
+        const id = bikeId instanceof ethers.BigNumber ? bikeId.toNumber() : bikeId;
+        if (!(id in boundBikes)) return;
+        addLog(`🔓 ${bikeLabel(id)} 已被租借，開鎖`, "green");
+        boundBikes[id].locked = false;
+        updateBikeCard(id, false);
     });
 
-    // 監聽還車事件 → 上鎖
-    bike.on("BikeReturned", (user, bikeId, fee, event) => {
-        if (bikeId !== boundBikeId) return;
-        const feeDisplay = Math.ceil(parseFloat(ethers.utils.formatUnits(fee, 18)));
-        addLog(`還車事件：${user.substring(0,8)}... 還車，費用 ${feeDisplay} NKUST`, "yellow");
-        setLockState(true); // 上鎖
-        addLog("🔒 智慧鎖已上鎖", "red");
-
-        if (navigator.vibrate) navigator.vibrate([500]);
+    bike.on("BikeReturned", (user, bikeId, fee) => {
+        const id  = bikeId instanceof ethers.BigNumber ? bikeId.toNumber() : bikeId;
+        const feeN = Math.ceil(parseFloat(ethers.utils.formatUnits(fee, 18)));
+        if (!(id in boundBikes)) return;
+        addLog(`🔒 ${bikeLabel(id)} 已還車（費用 ${feeN} NKUST），上鎖`, "red");
+        boundBikes[id].locked = true;
+        updateBikeCard(id, true);
     });
 
-    addLog(`開始監聽 SB-${String(boundBikeId+1).padStart(3,'0')} 的事件...`, "green");
+    addLog(`監聽已啟動，共 ${Object.keys(boundBikes).length} 台車`, "green");
 }
 
-// ===== 自動讀取網址參數 bike=N =====
-(function autoLoadFromUrl() {
-    const params = new URLSearchParams(window.location.search);
+// ===== 綁定新車輛 =====
+function openAddModal()  { document.getElementById('addModal').classList.add('show'); }
+function closeAddModal() {
+    document.getElementById('addModal').classList.remove('show');
+    if (qrScanner) { qrScanner.stop().catch(()=>{}); qrScanner = null; }
+    document.getElementById('scanStartBtn').style.display = 'block';
+    document.getElementById('qrManualInput').value = '';
+}
+
+function startQrScan() {
+    document.getElementById('scanStartBtn').style.display = 'none';
+    qrScanner = new Html5Qrcode("qr-reader");
+    qrScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 220, height: 220 } },
+        (text) => {
+            qrScanner.stop();
+            const id = parseQrText(text);
+            if (id !== null) {
+                document.getElementById('qrManualInput').value = id;
+                addLog(`掃描成功：${bikeLabel(id)}`, "green");
+            } else {
+                addLog("無效 QR Code：" + text, "red");
+            }
+        },
+        () => {}
+    ).catch(e => alert("相機啟動失敗：" + e));
+}
+
+function parseQrText(text) {
+    // 格式一：網址 ?bike=N
+    try {
+        const url   = new URL(text);
+        const param = url.searchParams.get('bike');
+        if (param !== null) return parseInt(param);
+    } catch(e) {}
+    // 格式二：純數字
+    if (/^\d+$/.test(text.trim())) return parseInt(text.trim());
+    return null;
+}
+
+async function confirmManualInput() {
+    const val    = document.getElementById('qrManualInput').value;
+    const bikeId = parseInt(val);
+    if (isNaN(bikeId) || bikeId < 0 || bikeId > 9) {
+        alert("請輸入 0～9 的車號");
+        return;
+    }
+    if (!provider) { alert("請先連接錢包"); return; }
+    closeAddModal();
+    await bindBike(bikeId);
+}
+
+async function bindBike(bikeId) {
+    try {
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
+        const info = await bike.getBike(bikeId);
+
+        if (info.lockBound && info.lockAddress.toLowerCase() !== myAddress.toLowerCase()) {
+            alert("此車已被其他鎖綁定，請聯絡管理員解除。");
+            return;
+        }
+        if (info.lockBound && info.lockAddress.toLowerCase() === myAddress.toLowerCase()) {
+            // 已經是自己綁的，直接加入監聽
+            boundBikes[bikeId] = { locked: info.isAvailable };
+            renderBikeCard(bikeId, info.isAvailable);
+            addLog(`${bikeLabel(bikeId)} 已在監聽清單`, "yellow");
+            return;
+        }
+
+        const tx = await bike.registerLock(bikeId);
+        addLog(`${bikeLabel(bikeId)} 綁定交易送出...`, "yellow");
+        await tx.wait();
+
+        boundBikes[bikeId] = { locked: true };
+        renderBikeCard(bikeId, true);
+        addLog(`✅ ${bikeLabel(bikeId)} 綁定成功，開始監聽`, "green");
+
+    } catch(e) { addLog("綁定失敗：" + (e.reason || e.message), "red"); }
+}
+
+// ===== 解除綁定（只從前端移除，合約需管理員操作）=====
+function unbindConfirm(bikeId) {
+    if (!confirm(`確定要從監聽清單移除 ${bikeLabel(bikeId)}？\n（合約綁定需由管理員在 Remix 呼叫 unbindLock 解除）`)) return;
+    delete boundBikes[bikeId];
+    document.getElementById(`bike-card-${bikeId}`)?.remove();
+    addLog(`已從監聽清單移除 ${bikeLabel(bikeId)}`, "yellow");
+}
+
+// ===== 自動讀取網址參數 =====
+function autoLoadFromUrl() {
+    const params  = new URLSearchParams(window.location.search);
     const bikeParam = params.get('bike');
     if (bikeParam === null) return;
-
     const bikeId = parseInt(bikeParam);
     if (isNaN(bikeId) || bikeId < 0 || bikeId > 9) return;
-
-    scannedBikeId = bikeId;
-    const label   = `SB-${String(bikeId+1).padStart(3,'0')}`;
-
-    // 自動跳過掃描步驟，直接進入綁定步驟
-    document.getElementById('bikeLabel').innerText     = `準備綁定：${label}`;
-    document.getElementById('qrResult').style.display  = 'block';
-    document.getElementById('qrResult').innerText      = `✅ 已自動識別：${label}`;
-    document.getElementById('bindBtn').style.display   = 'block';
-    document.getElementById('scanBtn').style.display   = 'none';
-
-    addLog(`從 QR Code 識別車輛：${label}`, "green");
-})();
+    addLog(`從 QR Code 自動識別：${bikeLabel(bikeId)}`, "green");
+    bindBike(bikeId);
+}
 
 // ===== MetaMask 監聽 =====
 if (window.ethereum) {
