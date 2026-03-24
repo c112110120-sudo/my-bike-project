@@ -314,15 +314,23 @@ function startQrScan() {
 }
 
 function parseQrCode(text) {
-    // 支援兩種格式：
-    // 1. smartbike://bike/0
-    // 2. 直接是數字（例如：0）
+    // 支援三種格式：
+    // 1. https://...lock.html?bike=0  （新格式，掃碼直接開頁面）
+    // 2. smartbike://bike/0
+    // 3. 直接是數字（例如：0）
     let bikeId = null;
 
-    const match = text.match(/smartbike:\/\/bike\/(\d+)/);
-    if (match) {
-        bikeId = parseInt(match[1]);
-    } else if (/^\d+$/.test(text.trim())) {
+    try {
+        const url   = new URL(text);
+        const param = url.searchParams.get('bike');
+        if (param !== null) bikeId = parseInt(param);
+    } catch(e) {}
+
+    if (bikeId === null) {
+        const match = text.match(/smartbike:\/\/bike\/(\d+)/);
+        if (match) bikeId = parseInt(match[1]);
+    }
+    if (bikeId === null && /^\d+$/.test(text.trim())) {
         bikeId = parseInt(text.trim());
     }
 
@@ -407,6 +415,28 @@ function startListening() {
 
     addLog(`開始監聽 SB-${String(boundBikeId+1).padStart(3,'0')} 的事件...`, "green");
 }
+
+// ===== 自動讀取網址參數 bike=N =====
+(function autoLoadFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const bikeParam = params.get('bike');
+    if (bikeParam === null) return;
+
+    const bikeId = parseInt(bikeParam);
+    if (isNaN(bikeId) || bikeId < 0 || bikeId > 9) return;
+
+    scannedBikeId = bikeId;
+    const label   = `SB-${String(bikeId+1).padStart(3,'0')}`;
+
+    // 自動跳過掃描步驟，直接進入綁定步驟
+    document.getElementById('bikeLabel').innerText     = `準備綁定：${label}`;
+    document.getElementById('qrResult').style.display  = 'block';
+    document.getElementById('qrResult').innerText      = `✅ 已自動識別：${label}`;
+    document.getElementById('bindBtn').style.display   = 'block';
+    document.getElementById('scanBtn').style.display   = 'none';
+
+    addLog(`從 QR Code 識別車輛：${label}`, "green");
+})();
 
 // ===== MetaMask 監聽 =====
 if (window.ethereum) {
