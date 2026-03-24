@@ -34,6 +34,15 @@
             background: #0c1a2e; padding: 6px 12px;
             border-radius: 20px; border: 1px solid #1e3a5f;
         }
+        .btn-disconnect-top {
+            background: transparent; color: #ef4444;
+            border: 1px solid #ef4444; font-weight: 700;
+            font-size: 0.78rem; padding: 8px 14px;
+            border-radius: 20px; cursor: pointer;
+            font-family: 'Noto Sans TC', sans-serif;
+            display: none;
+        }
+        .btn-disconnect-top:hover { background: rgba(239,68,68,0.1); }
         .btn-connect-top {
             background: linear-gradient(135deg,#0d9488,#0284c7);
             color: white; border: none; font-weight: 700;
@@ -162,8 +171,9 @@
 <!-- 頂部導覽列 -->
 <div class="top-bar">
     <span class="top-title">🚲 SmartBike 智慧鎖</span>
-    <div id="walletArea">
-        <button class="btn-connect-top" onclick="connectWallet()">連接錢包</button>
+    <div id="walletArea" style="display:flex;gap:8px;align-items:center;">
+        <button class="btn-connect-top" id="lockConnectBtn" onclick="connectWallet()">連接錢包</button>
+        <button class="btn-disconnect-top" id="lockDisconnectBtn" onclick="disconnectWallet()">✕ 解除連接</button>
     </div>
 </div>
 
@@ -249,8 +259,11 @@ async function connectWallet() {
         myAddress = await signer.getAddress();
 
         const short = myAddress.substring(0,6) + "..." + myAddress.substring(myAddress.length-4);
-        document.getElementById('walletArea').innerHTML =
-            `<span class="wallet-badge">✅ ${short}</span>`;
+        document.getElementById('lockConnectBtn').innerText = "✅ " + short;
+        document.getElementById('lockConnectBtn').style.background = '#052e16';
+        document.getElementById('lockConnectBtn').style.color = '#4ade80';
+        document.getElementById('lockConnectBtn').style.border = '1px solid #166534';
+        document.getElementById('lockDisconnectBtn').style.display = 'inline-block';
 
         addLog("錢包已連接：" + short, "green");
 
@@ -444,6 +457,38 @@ function autoLoadFromUrl() {
     if (isNaN(bikeId) || bikeId < 0 || bikeId > 9) return;
     addLog(`從 QR Code 自動識別：${bikeLabel(bikeId)}`, "green");
     bindBike(bikeId);
+}
+
+// ===== 解除錢包連接 =====
+function disconnectWallet() {
+    if (!confirm("確定要解除錢包連接？
+（已綁定的車輛不會受影響，重新連接後可繼續監聽）")) return;
+
+    // 停止事件監聽
+    if (provider) {
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
+        bike.removeAllListeners();
+    }
+
+    provider       = null;
+    signer         = null;
+    myAddress      = null;
+    eventListening = false;
+    boundBikes     = {};
+
+    // 清空車輛格子
+    document.getElementById('bikesGrid').innerHTML = '';
+
+    // 重置按鈕
+    const connectBtn    = document.getElementById('lockConnectBtn');
+    const disconnectBtn = document.getElementById('lockDisconnectBtn');
+    connectBtn.innerText        = "連接錢包";
+    connectBtn.style.background = '';
+    connectBtn.style.color      = '';
+    connectBtn.style.border     = '';
+    disconnectBtn.style.display = 'none';
+
+    addLog("錢包已解除連接", "yellow");
 }
 
 // ===== MetaMask 監聽 =====
