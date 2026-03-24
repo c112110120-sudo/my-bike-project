@@ -461,8 +461,7 @@ function autoLoadFromUrl() {
 
 // ===== 解除錢包連接 =====
 function disconnectWallet() {
-    if (!confirm("確定要解除錢包連接？
-（已綁定的車輛不會受影響，重新連接後可繼續監聽）")) return;
+    if (!confirm("確定要解除錢包連接？\n（已綁定的車輛不會受影響，重新連接後可繼續監聽）")) return;
 
     // 停止事件監聽
     if (provider) {
