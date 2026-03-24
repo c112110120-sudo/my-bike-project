@@ -801,10 +801,10 @@ async function updateOracleDisplay(provider) {
         const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
         // 用 1 NKUST 查詢報價，目的是取得當前 Oracle 價格
         const oneNkust = ethers.utils.parseUnits("1", 18);
-        const [, ethUsdPrice, twdPerUsdRate] = await bike.getQuote(oneNkust);
+        const [ethWei, ethUsdPrice, twdPerUsdRate] = await bike.getQuote(oneNkust);
 
         // 用 1 NKUST 查報價，直接顯示 1 NKUST 需付多少 ETH
-        const oneNkustEth    = parseFloat(ethers.utils.formatEther(ethWei)).toFixed(8);
+        const oneNkustEth = parseFloat(ethers.utils.formatEther(ethWei)).toFixed(8);
         const oneNkustEl = document.getElementById('oneNkustEthDisplay');
         if (oneNkustEl) oneNkustEl.innerText = oneNkustEth + " ETH";
     } catch (e) { console.error("Oracle 顯示更新失敗:", e); }
