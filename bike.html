@@ -204,7 +204,7 @@
                 <div class="rate-info">
                     <div class="rate-row">
                         <span class="text-muted">押金</span>
-                        <span class="fw-bold text-danger">100 NKUST</span>
+                        <span class="fw-bold text-danger">5000 NKUST</span>
                     </div>
                     <div class="rate-row">
                         <span class="text-muted">前 30 分鐘</span>
@@ -216,7 +216,7 @@
                     </div>
                     <div class="rate-row">
                         <span class="text-muted">單日上限</span>
-                        <span class="fw-bold text-success">100 NKUST</span>
+                        <span class="fw-bold text-success">5000 NKUST</span>
                     </div>
                     <div class="rate-row">
                         <span class="text-muted">跨日重置</span>
@@ -340,7 +340,7 @@
                     </h6>
                     <div id="selectedBikeInfo" class="alert alert-light py-2 px-3 mb-3 small" style="display:none;">
                         已選擇：<strong id="selectedBikeLabel">--</strong>
-                        <span class="text-muted ms-2">押金 100 NKUST 將於還車時退回</span>
+                        <span class="text-muted ms-2">押金 5000 NKUST 將於還車時退回</span>
                     </div>
                     <button id="rentBtn" class="btn-rent" onclick="handleRent()" disabled>
                         🚲 選擇車輛後租借
@@ -395,7 +395,7 @@
                             <span>💰</span>
                             <div>
                                 <div class="fw-bold small">押金退回</div>
-                                <div class="text-secondary" style="font-size:0.78rem;">還車後 100 NKUST 押金立即退回。</div>
+                                <div class="text-secondary" style="font-size:0.78rem;">還車後 5000 NKUST 押金立即退回。</div>
                             </div>
                         </div>
                     </div>
@@ -475,7 +475,7 @@ const bikeAbi = [
 // ===== 設定 =====
 const ADMIN_PASSWORD  = "nkust";
 const nkustAddr       = "0xC5C6Bc61a1146a745FA2fa6D300e45A76B8d1Cb4";
-const bikeAddr        = "0xABC4511aA0351497006e717bf09714a6113C5def";
+const bikeAddr   = "0x27c56287C8d2d4283Ef2d68f38a1777B383c380F";
 const WEATHER_API_KEY = "db68851cff88bbfaf24ddcefbccb2a18";
 
 let currentEthUsdPrice = 0;   // ETH 現價（USD，從合約 Oracle 讀取）
@@ -739,7 +739,7 @@ async function handleRent() {
         const tx     = await bike.rentWithNkust(selectedBikeId);
         alert("⏳ 租車交易送出...");
         await tx.wait();
-        alert("✅ 租車成功！押金 100 NKUST 已扣除，開始計時。");
+        alert("✅ 租車成功！押金 5000 NKUST 已扣除，開始計時。");
         selectedBikeId = null;
         await init(provider);
     } catch (e) { alert("租車失敗：" + (e.reason || e.message)); }
@@ -764,7 +764,7 @@ async function handleReturn() {
         alert("⏳ 還車交易送出...");
         await tx.wait();
         stopFeeTimer();
-        alert("✅ 還車成功！費用已扣除，押金 100 NKUST 已退回。");
+        alert("✅ 還車成功！費用已扣除，押金 5000 NKUST 已退回。");
         await init(provider);
     } catch (e) { alert("還車失敗：" + (e.data?.message || e.reason || e.message)); }
 }
