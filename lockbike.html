@@ -29,11 +29,6 @@
             border: 1px solid #1f2937;
         }
         .top-title { font-size: 1rem; font-weight: 700; color: #94a3b8; letter-spacing: 2px; }
-        .wallet-badge {
-            font-size: 0.78rem; color: #38bdf8;
-            background: #0c1a2e; padding: 6px 12px;
-            border-radius: 20px; border: 1px solid #1e3a5f;
-        }
         .btn-disconnect-top {
             background: transparent; color: #ef4444;
             border: 1px solid #ef4444; font-weight: 700;
@@ -83,13 +78,6 @@
         .status-unlocked { background: rgba(34,197,94,0.2);  color: #4ade80; }
         .status-unbound  { background: rgba(100,116,139,0.2); color: #94a3b8; }
 
-        .bind-btn {
-            margin-top: 10px; width: 100%; padding: 8px;
-            background: #16a34a; color: white; border: none;
-            border-radius: 8px; font-size: 0.78rem; font-weight: 700;
-            cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
-            display: none;
-        }
         .unbind-btn {
             margin-top: 6px; width: 100%; padding: 6px;
             background: transparent; color: #475569; border: 1px solid #374151;
@@ -178,9 +166,7 @@
 </div>
 
 <!-- 車輛格子 -->
-<div class="bikes-grid" id="bikesGrid">
-    <!-- 動態生成 -->
-</div>
+<div class="bikes-grid" id="bikesGrid"></div>
 
 <!-- 加入車輛按鈕 -->
 <div style="max-width:960px;margin:0 auto 20px;">
@@ -212,11 +198,12 @@
 
 <script>
 // ===== 合約設定 =====
-const bikeAddr   = "0xD98946890e2e5D234c229e78F332C17424c1A040";
-const escrowAddr = "0xb1De36625FCf25889a9bf85eb8314a19A565A3c0";
+const bikeAddr = "0x27c56287C8d2d4283Ef2d68f38a1777B383c380F";
 
+// [修正] getBike 補上 lockBound, lockAddress 回傳值（與合約一致）
 const bikeAbi = [
     "function registerLock(uint8 bikeId)",
+    "function unbindLock(uint8 bikeId)",
     "function getBike(uint8 bikeId) view returns (bool isAvailable, address renter, uint256 rentStartTime, bool lockBound, address lockAddress)",
     "event BikeRented(address indexed user, uint8 indexed bikeId, uint256 depositNkust)",
     "event BikeReturned(address indexed user, uint8 indexed bikeId, uint256 feeNkust)"
@@ -228,10 +215,7 @@ let signer         = null;
 let myAddress      = null;
 let qrScanner      = null;
 let eventListening = false;
-
-// boundBikes：紀錄這個錢包綁定的所有車
-// { bikeId: { locked: true/false } }
-let boundBikes = {};
+let boundBikes     = {};  // { bikeId: { locked: bool } }
 
 // ===== 工具 =====
 function addLog(msg, type = '') {
@@ -259,34 +243,33 @@ async function connectWallet() {
         myAddress = await signer.getAddress();
 
         const short = myAddress.substring(0,6) + "..." + myAddress.substring(myAddress.length-4);
-        document.getElementById('lockConnectBtn').innerText = "✅ " + short;
-        document.getElementById('lockConnectBtn').style.background = '#052e16';
-        document.getElementById('lockConnectBtn').style.color = '#4ade80';
-        document.getElementById('lockConnectBtn').style.border = '1px solid #166534';
-        document.getElementById('lockDisconnectBtn').style.display = 'inline-block';
+        const connectBtn    = document.getElementById('lockConnectBtn');
+        const disconnectBtn = document.getElementById('lockDisconnectBtn');
+        connectBtn.innerText        = "✅ " + short;
+        connectBtn.style.background = '#052e16';
+        connectBtn.style.color      = '#4ade80';
+        connectBtn.style.border     = '1px solid #166534';
+        disconnectBtn.style.display = 'inline-block';
 
         addLog("錢包已連接：" + short, "green");
 
-        // 掃描合約，找出這個錢包綁定的所有車
         await scanBoundBikes();
-
-        // 開始監聽所有已綁定的車
         startListening();
-
-        // 檢查網址有沒有 ?bike=N 自動帶入
         autoLoadFromUrl();
 
     } catch(e) { alert("連接失敗：" + e.message); }
 }
 
-// ===== 掃描合約找已綁定的車 =====
+// ===== 掃描已綁定的車 =====
 async function scanBoundBikes() {
     try {
         const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
         for (let i = 0; i < 10; i++) {
             const info = await bike.getBike(i);
+            // [修正] lockBound 和 lockAddress 現在能正確讀取
             if (info.lockBound && info.lockAddress.toLowerCase() === myAddress.toLowerCase()) {
-                boundBikes[i] = { locked: info.isAvailable }; // isAvailable = 沒人租 = 鎖住
+                // isAvailable = true 表示無人租借 = 應上鎖
+                boundBikes[i] = { locked: info.isAvailable };
                 renderBikeCard(i, info.isAvailable);
                 addLog(`偵測到已綁定：${bikeLabel(i)}`, "yellow");
             }
@@ -297,9 +280,9 @@ async function scanBoundBikes() {
     } catch(e) { console.error("掃描綁定失敗:", e); }
 }
 
-// ===== 渲染單張車輛卡片 =====
+// ===== 渲染車輛卡片 =====
 function renderBikeCard(bikeId, isLocked) {
-    const grid    = document.getElementById('bikesGrid');
+    const grid     = document.getElementById('bikesGrid');
     const existing = document.getElementById(`bike-card-${bikeId}`);
     if (existing) existing.remove();
 
@@ -389,13 +372,11 @@ function startQrScan() {
 }
 
 function parseQrText(text) {
-    // 格式一：網址 ?bike=N
     try {
         const url   = new URL(text);
         const param = url.searchParams.get('bike');
         if (param !== null) return parseInt(param);
     } catch(e) {}
-    // 格式二：純數字
     if (/^\d+$/.test(text.trim())) return parseInt(text.trim());
     return null;
 }
@@ -417,12 +398,12 @@ async function bindBike(bikeId) {
         const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
         const info = await bike.getBike(bikeId);
 
+        // [修正] 正確存取 lockBound 和 lockAddress
         if (info.lockBound && info.lockAddress.toLowerCase() !== myAddress.toLowerCase()) {
             alert("此車已被其他鎖綁定，請聯絡管理員解除。");
             return;
         }
         if (info.lockBound && info.lockAddress.toLowerCase() === myAddress.toLowerCase()) {
-            // 已經是自己綁的，直接加入監聽
             boundBikes[bikeId] = { locked: info.isAvailable };
             renderBikeCard(bikeId, info.isAvailable);
             addLog(`${bikeLabel(bikeId)} 已在監聽清單`, "yellow");
@@ -440,17 +421,27 @@ async function bindBike(bikeId) {
     } catch(e) { addLog("綁定失敗：" + (e.reason || e.message), "red"); }
 }
 
-// ===== 解除綁定（只從前端移除，合約需管理員操作）=====
-function unbindConfirm(bikeId) {
-    if (!confirm(`確定要從監聽清單移除 ${bikeLabel(bikeId)}？\n（合約綁定需由管理員在 Remix 呼叫 unbindLock 解除）`)) return;
-    delete boundBikes[bikeId];
-    document.getElementById(`bike-card-${bikeId}`)?.remove();
-    addLog(`已從監聽清單移除 ${bikeLabel(bikeId)}`, "yellow");
+// ===== 解除綁定（直接呼叫合約 unbindLock）=====
+async function unbindConfirm(bikeId) {
+    if (!confirm(`確定要解除 ${bikeLabel(bikeId)} 的智慧鎖綁定？\n此操作需要 owner 錢包簽署，會寫入合約。`)) return;
+    if (!signer) { alert("請先連接錢包"); return; }
+    try {
+        const bike = new ethers.Contract(bikeAddr, bikeAbi, signer);
+        const tx   = await bike.unbindLock(bikeId);
+        addLog(`${bikeLabel(bikeId)} 解綁交易送出...`, "yellow");
+        await tx.wait();
+        delete boundBikes[bikeId];
+        document.getElementById(`bike-card-${bikeId}`)?.remove();
+        addLog(`✅ ${bikeLabel(bikeId)} 合約解綁成功`, "green");
+    } catch(e) {
+        addLog(`解綁失敗：${e.reason || e.message}`, "red");
+        alert("解綁失敗：" + (e.reason || e.message) + "\n（需要 owner 錢包才能執行）");
+    }
 }
 
 // ===== 自動讀取網址參數 =====
 function autoLoadFromUrl() {
-    const params  = new URLSearchParams(window.location.search);
+    const params    = new URLSearchParams(window.location.search);
     const bikeParam = params.get('bike');
     if (bikeParam === null) return;
     const bikeId = parseInt(bikeParam);
@@ -463,7 +454,6 @@ function autoLoadFromUrl() {
 function disconnectWallet() {
     if (!confirm("確定要解除錢包連接？\n（已綁定的車輛不會受影響，重新連接後可繼續監聽）")) return;
 
-    // 停止事件監聽
     if (provider) {
         const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
         bike.removeAllListeners();
@@ -475,10 +465,8 @@ function disconnectWallet() {
     eventListening = false;
     boundBikes     = {};
 
-    // 清空車輛格子
     document.getElementById('bikesGrid').innerHTML = '';
 
-    // 重置按鈕
     const connectBtn    = document.getElementById('lockConnectBtn');
     const disconnectBtn = document.getElementById('lockDisconnectBtn');
     connectBtn.innerText        = "連接錢包";
