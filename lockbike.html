@@ -189,7 +189,7 @@
     <div class="modal-box">
         <div class="modal-title">綁定車輛</div>
         <div id="qr-reader"></div>
-        <input type="number" id="qrManualInput" placeholder="或直接輸入車號（0～9）" min="0" max="9">
+        <input type="number" id="qrManualInput" placeholder="或直接輸入車號（1～10）" min="1" max="10">
         <button class="modal-btn modal-btn-scan" id="scanStartBtn" onclick="startQrScan()">📷 掃描 QR Code</button>
         <button class="modal-btn" style="background:#16a34a;color:white;" onclick="confirmManualInput()">確認綁定</button>
         <button class="modal-btn modal-btn-cancel" onclick="closeAddModal()">取消</button>
@@ -384,13 +384,13 @@ function parseQrText(text) {
 async function confirmManualInput() {
     const val    = document.getElementById('qrManualInput').value;
     const bikeId = parseInt(val);
-    if (isNaN(bikeId) || bikeId < 0 || bikeId > 9) {
-        alert("請輸入 0～9 的車號");
+    if (isNaN(bikeId) || bikeId < 1 || bikeId > 10) {
+        alert("請輸入 1～10 的車號");
         return;
     }
     if (!provider) { alert("請先連接錢包"); return; }
     closeAddModal();
-    await bindBike(bikeId);
+    await bindBike(bikeId - 1); // 顯示 1~10，合約 index 0~9
 }
 
 async function bindBike(bikeId) {
