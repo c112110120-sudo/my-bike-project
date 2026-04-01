@@ -10,131 +10,73 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
         body { background:#f8fafc; font-family:'Noto Sans TC',sans-serif; color:#1e293b; }
-
-        .top-nav {
-            background:white; border-bottom:1px solid #e2e8f0;
-            padding:12px 20px; position:sticky; top:0; z-index:100;
-            display:flex; justify-content:space-between; align-items:center;
-        }
+        .top-nav { background:white; border-bottom:1px solid #e2e8f0; padding:12px 20px; position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center; }
         .top-nav-title { font-size:1rem; font-weight:700; color:#0369a1; }
-
-        .glass {
-            background:white; border-radius:16px; padding:20px;
-            box-shadow:0 4px 16px rgba(0,0,0,0.06);
-            border:1px solid #e2e8f0; margin-bottom:16px;
-        }
-
-        /* 腳踏車格子 */
-        .bikes-grid {
-            display:grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap:12px; margin-top:8px;
-        }
-        .bike-tile {
-            background:#f8fafc; border:2px solid #e2e8f0;
-            border-radius:12px; padding:14px 10px;
-            text-align:center; cursor:pointer; transition:all 0.2s;
-        }
-        .bike-tile:hover:not(.rented) {
-            border-color:#0d9488;
-            box-shadow:0 0 0 3px rgba(13,148,136,0.12);
-            transform:translateY(-2px);
-        }
+        .glass { background:white; border-radius:16px; padding:20px; box-shadow:0 4px 16px rgba(0,0,0,0.06); border:1px solid #e2e8f0; margin-bottom:16px; }
+        .bikes-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-top:8px; }
+        .bike-tile { background:#f8fafc; border:2px solid #e2e8f0; border-radius:12px; padding:14px 10px; text-align:center; cursor:pointer; transition:all 0.2s; }
+        .bike-tile:hover:not(.rented):not(.unbound) { border-color:#0d9488; box-shadow:0 0 0 3px rgba(13,148,136,0.12); transform:translateY(-2px); }
         .bike-tile.selected { border-color:#0d6efd; background:#eff6ff; box-shadow:0 0 0 3px rgba(13,110,253,0.15); }
         .bike-tile.rented   { background:#fef2f2; border-color:#fca5a5; cursor:not-allowed; opacity:0.7; }
         .bike-tile.mine     { background:#f0fdf4; border-color:#22c55e; }
         .bike-tile.unbound  { background:#f8fafc; border-color:#cbd5e1; cursor:not-allowed; opacity:0.5; }
-        .bike-emoji  { font-size:2rem; margin-bottom:6px; }
-        .bike-id     { font-size:0.75rem; font-weight:700; color:#475569; }
+        .bike-emoji { font-size:2rem; margin-bottom:6px; }
+        .bike-id    { font-size:0.75rem; font-weight:700; color:#475569; }
         .bike-status-badge { font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:20px; margin-top:4px; display:inline-block; }
         .badge-free    { background:#dcfce7; color:#166534; }
         .badge-rented  { background:#fee2e2; color:#991b1b; }
         .badge-mine    { background:#bbf7d0; color:#14532d; }
         .badge-unbound { background:#f1f5f9; color:#64748b; }
 
-        /* 計時器 */
-        .fee-timer {
-            background:linear-gradient(135deg,#0d2035,#0d3d5e);
-            border-radius:16px; padding:20px; color:white; margin-bottom:16px;
-        }
+        /* 租借方式切換 */
+        .pay-toggle { display:flex; background:#f1f5f9; border-radius:12px; padding:4px; margin-bottom:14px; }
+        .pay-btn { flex:1; padding:8px; border:none; border-radius:8px; font-size:0.85rem; font-weight:700; cursor:pointer; font-family:'Noto Sans TC',sans-serif; background:transparent; color:#64748b; transition:all 0.2s; }
+        .pay-btn.active { background:white; color:#0d6efd; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+        .pay-btn.eth-active { background:white; color:#f59e0b; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+
+        .fee-timer { background:linear-gradient(135deg,#0d2035,#0d3d5e); border-radius:16px; padding:20px; color:white; margin-bottom:16px; }
         .fee-timer-label { font-size:0.75rem; opacity:0.7; margin-bottom:4px; }
         .fee-timer-value { font-size:2rem; font-weight:700; color:#00d4b8; }
         .fee-timer-sub   { font-size:0.8rem; opacity:0.6; margin-top:4px; }
         .fee-progress    { height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin-top:12px; overflow:hidden; }
         .fee-progress-bar{ height:100%; background:#00d4b8; border-radius:3px; transition:width 1s; }
 
-        /* 按鈕 */
-        .btn-rent {
-            background:linear-gradient(135deg,#0d9488,#0284c7);
-            color:white; border:none; font-weight:700; padding:14px;
-            border-radius:50px; width:100%; font-size:1rem; cursor:pointer;
-            font-family:'Noto Sans TC',sans-serif;
-        }
-        .btn-rent:disabled { background:#cbd5e1; color:#94a3b8; cursor:not-allowed; }
-        .btn-return {
-            background:linear-gradient(135deg,#e11d48,#be123c);
-            color:white; border:none; font-weight:700; padding:14px;
-            border-radius:12px; width:100%; font-size:1rem; cursor:pointer;
-            font-family:'Noto Sans TC',sans-serif;
-        }
-        .btn-approve {
-            background:#f59e0b; color:white; border:none; font-weight:700;
-            padding:10px; border-radius:50px; width:100%; font-size:0.9rem;
-            cursor:pointer; margin-bottom:8px; font-family:'Noto Sans TC',sans-serif;
-        }
-        .btn-buy {
-            background:#16a34a; color:white; border:none; font-weight:700;
-            padding:10px; border-radius:50px; width:100%; font-size:0.9rem;
-            cursor:pointer; font-family:'Noto Sans TC',sans-serif;
-        }
+        .btn-rent   { background:linear-gradient(135deg,#0d9488,#0284c7); color:white; border:none; font-weight:700; padding:14px; border-radius:50px; width:100%; font-size:1rem; cursor:pointer; font-family:'Noto Sans TC',sans-serif; }
+        .btn-rent-eth { background:linear-gradient(135deg,#f59e0b,#d97706); color:white; border:none; font-weight:700; padding:14px; border-radius:50px; width:100%; font-size:1rem; cursor:pointer; font-family:'Noto Sans TC',sans-serif; }
+        .btn-rent:disabled, .btn-rent-eth:disabled { background:#cbd5e1; color:#94a3b8; cursor:not-allowed; }
+        .btn-return     { background:linear-gradient(135deg,#e11d48,#be123c); color:white; border:none; font-weight:700; padding:14px; border-radius:12px; width:100%; font-size:1rem; cursor:pointer; font-family:'Noto Sans TC',sans-serif; }
+        .btn-approve    { background:#f59e0b; color:white; border:none; font-weight:700; padding:10px; border-radius:50px; width:100%; font-size:0.9rem; cursor:pointer; margin-bottom:8px; font-family:'Noto Sans TC',sans-serif; }
+        .btn-approve2   { background:#8b5cf6; color:white; border:none; font-weight:700; padding:10px; border-radius:50px; width:100%; font-size:0.9rem; cursor:pointer; margin-bottom:8px; font-family:'Noto Sans TC',sans-serif; }
+        .btn-buy        { background:#16a34a; color:white; border:none; font-weight:700; padding:10px; border-radius:50px; width:100%; font-size:0.9rem; cursor:pointer; font-family:'Noto Sans TC',sans-serif; }
 
-        #connectBtn {
-            background:linear-gradient(135deg,#0d9488,#0284c7);
-            color:white; border:none; font-weight:600;
-            font-size:0.8rem; padding:8px 18px; border-radius:50px; cursor:pointer;
-            font-family:'Noto Sans TC',sans-serif;
-        }
+        #connectBtn { background:linear-gradient(135deg,#0d9488,#0284c7); color:white; border:none; font-weight:600; font-size:0.8rem; padding:8px 18px; border-radius:50px; cursor:pointer; font-family:'Noto Sans TC',sans-serif; }
         #connectBtn.connected { background:#dcfce7; color:#166534; }
-        #disconnectBtn {
-            background:transparent; color:#ef4444;
-            border:1px solid #ef4444; font-weight:600;
-            font-size:0.78rem; padding:8px 14px; border-radius:50px;
-            cursor:pointer; font-family:'Noto Sans TC',sans-serif;
-            display:none;
-        }
-        #disconnectBtn:hover { background:#fef2f2; }
+        #disconnectBtn { background:transparent; color:#ef4444; border:1px solid #ef4444; font-weight:600; font-size:0.78rem; padding:8px 14px; border-radius:50px; cursor:pointer; font-family:'Noto Sans TC',sans-serif; display:none; }
 
-        /* 費率表 */
-        .rate-info  { background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:14px; font-size:0.82rem; }
-        .rate-row   { display:flex; justify-content:space-between; padding:4px 0; }
+        .rate-info { background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:14px; font-size:0.82rem; }
+        .rate-row  { display:flex; justify-content:space-between; padding:4px 0; }
         .rate-row + .rate-row { border-top:1px solid #e0f2fe; }
-
-        /* 結算說明 */
         .settlement-box { background:#fff5f5; border:2px dashed #fca5a5; border-radius:14px; padding:18px; margin-top:8px; }
 
-        /* 管理員 */
-        #adminModal {
-            display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-            background:rgba(15,23,42,0.9); z-index:9999;
-            justify-content:center; align-items:center; backdrop-filter:blur(8px);
-        }
+        #adminModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.9); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(8px); }
         .admin-card { width:90%; max-width:360px; background:white; padding:28px; border-radius:24px; box-shadow:0 25px 50px rgba(0,0,0,0.4); }
         #adminPanel { display:none; margin-top:24px; border-top:2px dashed #e2e8f0; padding-top:20px; }
 
-        /* 手機引導 */
         .mobile-guide { background:#fffbeb; border:1px solid #fcd34d; border-radius:14px; padding:16px; margin-bottom:16px; display:none; }
         .btn-metamask { background:#f6851b; color:white; border:none; font-weight:700; padding:10px 20px; border-radius:50px; font-size:0.9rem; cursor:pointer; width:100%; margin-top:10px; font-family:'Noto Sans TC',sans-serif; }
 
-        @media (max-width:576px) {
-            .glass { padding:14px; border-radius:14px; }
-            .bikes-grid { grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); }
-        }
+        /* 收益卡片 */
+        .revenue-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+        .rev-card { background:#f8fafc; border-radius:10px; padding:12px; border:1px solid #e2e8f0; text-align:center; }
+        .rev-label { font-size:0.7rem; color:#64748b; margin-bottom:4px; }
+        .rev-value { font-size:1.1rem; font-weight:700; }
+
+        @media (max-width:576px) { .glass { padding:14px; border-radius:14px; } .bikes-grid { grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); } }
         .bottom-spacer { height:env(safe-area-inset-bottom,20px); }
     </style>
 </head>
 <body>
 
-<!-- 頂部導覽列 -->
 <div class="top-nav">
     <span class="top-nav-title">🚲 SmartBike 租賃系統</span>
     <div class="d-flex gap-2 align-items-center">
@@ -144,7 +86,6 @@
     </div>
 </div>
 
-<!-- 管理員彈窗 -->
 <div id="adminModal">
     <div class="admin-card text-center">
         <div class="mb-3" style="font-size:2.5rem;">🔐</div>
@@ -156,10 +97,8 @@
     </div>
 </div>
 
-<!-- 主內容 -->
 <main class="container py-3 mb-4" style="max-width:960px;">
 
-    <!-- 手機引導 -->
     <div class="mobile-guide" id="mobileGuide">
         <div class="d-flex gap-3 align-items-start">
             <span style="font-size:1.8rem;">🦊</span>
@@ -176,7 +115,6 @@
         <!-- ===== 左欄 ===== -->
         <div class="col-lg-5">
 
-            <!-- 錢包資產 -->
             <div class="glass">
                 <div class="text-center mb-3">
                     <div class="small text-muted mb-1">💳 我的錢包資產</div>
@@ -184,10 +122,10 @@
                     <div class="small text-muted" id="ethBalanceDisplay">-- ETH</div>
                     <div id="walletAddr" class="text-muted mt-1" style="font-size:0.7rem; word-break:break-all;"></div>
                 </div>
-
-                <!-- [BUG 3 修正] Approve 目標改為 ESCROW_ADDR -->
-                <button id="approveBtn" class="btn-approve" onclick="handleApprove()">🔑 授權合約使用 NKUST</button>
-
+                <!-- 授權 Escrow（押金） -->
+                <button id="approveBtn" class="btn-approve" onclick="handleApprove()">🔑 授權 Escrow 使用 NKUST（押金）</button>
+                <!-- 授權 NKUSTBike（費用） -->
+                <button id="approveBtn2" class="btn-approve2" onclick="handleApprove2()">🔑 授權 NKUSTBike 使用 NKUST（費用）</button>
                 <!-- 購幣 -->
                 <div class="input-group input-group-sm mb-2">
                     <span class="input-group-text">購買量</span>
@@ -197,85 +135,57 @@
                 <button class="btn-buy" onclick="handleBuyTokens()">以 ETH 兌換高科幣</button>
             </div>
 
-            <!-- 費率說明 -->
             <div class="glass">
                 <div class="d-flex align-items-center mb-3">
                     <i class="bi bi-clock-history me-2 text-primary"></i>
                     <h6 class="fw-bold m-0">計費規則</h6>
                 </div>
                 <div class="rate-info">
-                    <div class="rate-row">
-                        <span class="text-muted">押金</span>
-                        <span class="fw-bold text-danger">1000 NKUST</span>
-                    </div>
-                    <div class="rate-row">
-                        <span class="text-muted">前 30 分鐘</span>
-                        <span class="fw-bold">5 NKUST</span>
-                    </div>
-                    <div class="rate-row">
-                        <span class="text-muted">之後每 30 分鐘</span>
-                        <span class="fw-bold">5 NKUST</span>
-                    </div>
-                    <div class="rate-row">
-                        <span class="text-muted">單日上限</span>
-                        <span class="fw-bold text-success">100 NKUST</span>
-                    </div>
-                    <div class="rate-row">
-                        <span class="text-muted">跨日重置</span>
-                        <span class="fw-bold">每日 00:00</span>
-                    </div>
-                    <div class="rate-row">
-                        <span class="text-muted">不滿半小時</span>
-                        <span class="fw-bold">以半小時計</span>
-                    </div>
+                    <div class="rate-row"><span class="text-muted">押金</span><span class="fw-bold text-danger">5000 NKUST 或等值 ETH</span></div>
+                    <div class="rate-row"><span class="text-muted">每 30 分鐘</span><span class="fw-bold">5 NKUST 或等值 ETH</span></div>
+                    <div class="rate-row"><span class="text-muted">單日上限</span><span class="fw-bold text-success">100 NKUST 或等值 ETH</span></div>
+                    <div class="rate-row"><span class="text-muted">跨日重置</span><span class="fw-bold">每日 00:00</span></div>
+                    <div class="rate-row"><span class="text-muted">不滿半小時</span><span class="fw-bold">以半小時計</span></div>
                 </div>
             </div>
 
-            <!-- 即時資訊 -->
             <div class="glass" style="font-size:0.88rem;">
-                <div class="d-flex align-items-center mb-2">
-                    <span class="me-2">📍</span>
-                    <h6 class="fw-bold m-0">即時資訊</h6>
-                </div>
+                <div class="d-flex align-items-center mb-2"><span class="me-2">📍</span><h6 class="fw-bold m-0">即時資訊</h6></div>
                 <div class="btn-group w-100 mb-2" role="group">
                     <button class="btn btn-outline-primary btn-sm" onclick="updateWeather('Taipei')">台北</button>
                     <button class="btn btn-outline-primary btn-sm" onclick="updateWeather('Kaohsiung')">高雄</button>
                 </div>
                 <div class="d-flex justify-content-between mb-2 small">
                     <span class="text-muted">當前城市：</span>
-                    <div>
-                        <span id="cityName" class="fw-bold text-primary">高雄市</span>
-                        <span id="cityTemp" class="fw-bold text-primary ms-1">--°C</span>
-                    </div>
+                    <div><span id="cityName" class="fw-bold text-primary">高雄市</span><span id="cityTemp" class="fw-bold text-primary ms-1">--°C</span></div>
                 </div>
                 <div class="pt-2 border-top">
                     <div class="d-flex justify-content-between small">
                         <span class="text-muted">1 NKUST 需付：</span>
                         <span id="oneNkustEthDisplay" class="fw-bold text-danger">計算中...</span>
                     </div>
+                    <div class="d-flex justify-content-between small mt-1">
+                        <span class="text-muted">押金（ETH 模式）：</span>
+                        <span id="depositEthDisplay" class="fw-bold text-warning">計算中...</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Oracle 報價查詢 -->
             <div class="glass">
                 <div class="d-flex align-items-center gap-2 mb-3">
                     <span style="font-size:1.2rem;">⛓️</span>
                     <h6 class="fw-bold m-0">Oracle 即時報價</h6>
                     <span class="badge bg-primary" style="font-size:0.62rem;">Chainlink</span>
                 </div>
-
                 <div class="input-group input-group-sm mb-2">
                     <span class="input-group-text">NKUST</span>
                     <input type="number" id="quoteInput" class="form-control" placeholder="輸入數量" min="1" value="100">
                     <button class="btn btn-primary fw-bold" onclick="queryGetQuote()">查詢</button>
                 </div>
-
                 <div id="quoteLoading" style="display:none;text-align:center;padding:10px;font-size:0.82rem;color:#64748b;">
                     <div class="spinner-border spinner-border-sm me-1" role="status"></div>向 Chainlink 查詢中...
                 </div>
-
                 <div id="quoteError" style="display:none;" class="alert alert-danger py-2 px-3 small mb-0"></div>
-
                 <div id="quoteResult" style="display:none;">
                     <div class="row g-2 mb-2">
                         <div class="col-12">
@@ -303,13 +213,11 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <!-- ===== 右欄 ===== -->
         <div class="col-lg-7">
 
-            <!-- 腳踏車選擇 -->
             <div class="glass">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold m-0"><i class="bi bi-bicycle me-2 text-primary"></i>選擇腳踏車</h6>
@@ -319,8 +227,7 @@
                 </div>
                 <div class="bikes-grid" id="bikesGrid">
                     <div class="text-center text-muted small py-4 w-100">
-                        <i class="bi bi-bicycle fs-2 d-block mb-2"></i>
-                        連接錢包後載入車輛狀態
+                        <i class="bi bi-bicycle fs-2 d-block mb-2"></i>連接錢包後載入車輛狀態
                     </div>
                 </div>
                 <div class="mt-3 d-flex gap-2 flex-wrap" style="font-size:0.75rem;">
@@ -331,28 +238,42 @@
                 </div>
             </div>
 
-            <!-- 操作區 -->
             <div class="glass">
-                <!-- 未租借 -->
                 <div id="rentSection">
-                    <h6 class="fw-bold mb-3 text-secondary">
-                        <i class="bi bi-info-circle me-2"></i>目前無租借中的車輛
-                    </h6>
+                    <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-info-circle me-2"></i>目前無租借中的車輛</h6>
+
+                    <!-- 付款方式切換 -->
+                    <div class="pay-toggle" id="payToggle">
+                        <button class="pay-btn active" id="btnNkust" onclick="switchPayMode('nkust')">🪙 NKUST 租車</button>
+                        <button class="pay-btn" id="btnEth" onclick="switchPayMode('eth')">⟠ ETH 租車</button>
+                    </div>
+
+                    <!-- NKUST 模式說明 -->
+                    <div id="nkustModeInfo" class="alert alert-info py-2 px-3 small mb-3">
+                        押金 <strong>5000 NKUST</strong>，需先授權 Escrow 合約。費用還車時從錢包扣，需授權 NKUSTBike 合約。
+                    </div>
+                    <!-- ETH 模式說明 -->
+                    <div id="ethModeInfo" class="alert alert-warning py-2 px-3 small mb-3" style="display:none;">
+                        押金為 <strong>5000 NKUST 等值 ETH</strong>（Chainlink 即時換算），無需 NKUST 或授權，直接用 ETH 付款。
+                        <div class="mt-1">押金預估：<strong id="depositEthInfoDisplay">計算中...</strong></div>
+                    </div>
+
                     <div id="selectedBikeInfo" class="alert alert-light py-2 px-3 mb-3 small" style="display:none;">
                         已選擇：<strong id="selectedBikeLabel">--</strong>
-                        <span class="text-muted ms-2">押金 1000 NKUST 將於還車時退回</span>
+                        <span class="text-muted ms-2" id="selectedBikeDepositHint">押金 5000 NKUST 將於還車時退回</span>
                     </div>
-                    <button id="rentBtn" class="btn-rent" onclick="handleRent()" disabled>
-                        🚲 選擇車輛後租借
-                    </button>
+
+                    <button id="rentBtn" class="btn-rent" onclick="handleRent()" disabled>🚲 選擇車輛後租借</button>
                 </div>
 
-                <!-- 租借中 -->
                 <div id="activeSection" style="display:none;">
                     <div class="fee-timer">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
-                                <div class="fee-timer-label">租借中 — 車輛 #<span id="activeBikeId">-</span></div>
+                                <div class="fee-timer-label">
+                                    租借中 — 車輛 #<span id="activeBikeId">-</span>
+                                    <span id="rentalModeTag" class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;"></span>
+                                </div>
                                 <div class="fee-timer-value" id="feeDisplay">0 NKUST</div>
                                 <div class="fee-timer-sub">目前應付費用（不含押金）</div>
                             </div>
@@ -362,61 +283,26 @@
                             </div>
                         </div>
                         <div class="fee-timer-label mb-1">今日費用上限進度</div>
-                        <div class="fee-progress">
-                            <div class="fee-progress-bar" id="feeProgressBar" style="width:0%"></div>
-                        </div>
+                        <div class="fee-progress"><div class="fee-progress-bar" id="feeProgressBar" style="width:0%"></div></div>
                         <div class="d-flex justify-content-between mt-1" style="font-size:0.7rem;opacity:0.6;">
-                            <span>0 NKUST</span>
-                            <span>上限 100 NKUST</span>
+                            <span>0</span><span>上限 100 NKUST</span>
                         </div>
                     </div>
                     <div class="mb-3">
                         <div class="small text-muted mb-1">起租時間：<strong id="rentStartDisplay">--</strong></div>
+                        <div class="small text-muted" id="ethFeeEstimate" style="display:none;"></div>
                     </div>
-                    <button class="btn-return" onclick="handleReturn()">還車並付款</button>
+                    <button class="btn-return" id="returnBtn" onclick="handleReturn()">還車並付款</button>
                 </div>
             </div>
 
-            <!-- 結算說明 -->
             <div class="settlement-box">
                 <h6 class="fw-bold text-danger text-center mb-3">📋 歸還與結算說明</h6>
                 <div class="row g-2">
-                    <div class="col-sm-6">
-                        <div class="d-flex align-items-start gap-2">
-                            <span>📍</span>
-                            <div>
-                                <div class="fw-bold small">定點停放</div>
-                                <div class="text-secondary" style="font-size:0.78rem;">停放於指定站點後點擊還車。</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="d-flex align-items-start gap-2">
-                            <span>💰</span>
-                            <div>
-                                <div class="fw-bold small">押金退回</div>
-                                <div class="text-secondary" style="font-size:0.78rem;">還車後 1000 NKUST 押金立即退回。</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="d-flex align-items-start gap-2">
-                            <span>⏱️</span>
-                            <div>
-                                <div class="fw-bold small">時間計費</div>
-                                <div class="text-secondary" style="font-size:0.78rem;">不滿半小時以半小時計算。</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="d-flex align-items-start gap-2">
-                            <span>🔄</span>
-                            <div>
-                                <div class="fw-bold small">跨日重置</div>
-                                <div class="text-secondary" style="font-size:0.78rem;">每日 00:00 上限重新計算。</div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="col-sm-6"><div class="d-flex align-items-start gap-2"><span>📍</span><div><div class="fw-bold small">定點停放</div><div class="text-secondary" style="font-size:0.78rem;">停放於指定站點後點擊還車。</div></div></div></div>
+                    <div class="col-sm-6"><div class="d-flex align-items-start gap-2"><span>💰</span><div><div class="fw-bold small">押金退回</div><div class="text-secondary" style="font-size:0.78rem;">還車後押金（NKUST 或 ETH）立即退回。</div></div></div></div>
+                    <div class="col-sm-6"><div class="d-flex align-items-start gap-2"><span>⏱️</span><div><div class="fw-bold small">時間計費</div><div class="text-secondary" style="font-size:0.78rem;">不滿半小時以半小時計算。</div></div></div></div>
+                    <div class="col-sm-6"><div class="d-flex align-items-start gap-2"><span>🔄</span><div><div class="fw-bold small">跨日重置</div><div class="text-secondary" style="font-size:0.78rem;">每日 00:00 上限重新計算。</div></div></div></div>
                 </div>
             </div>
         </div>
@@ -429,6 +315,27 @@
                 <h5 class="fw-bold text-danger m-0">📊 後台管理</h5>
                 <button class="btn btn-sm btn-outline-danger" onclick="refreshAdminData()">🔄 刷新</button>
             </div>
+
+            <!-- 收益概覽 -->
+            <div class="revenue-grid mb-3">
+                <div class="rev-card">
+                    <div class="rev-label">NKUST 累積收益</div>
+                    <div class="rev-value text-primary" id="adminNkustRevenue">--</div>
+                </div>
+                <div class="rev-card">
+                    <div class="rev-label">ETH 累積收益</div>
+                    <div class="rev-value text-warning" id="adminEthRevenue">--</div>
+                </div>
+                <div class="rev-card">
+                    <div class="rev-label">合約 NKUST 餘額</div>
+                    <div class="rev-value text-success" id="adminNkustBal">--</div>
+                </div>
+                <div class="rev-card">
+                    <div class="rev-label">Escrow 鎖定押金</div>
+                    <div class="rev-value text-danger" id="adminEscrowBal">--</div>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-hover align-middle small">
                     <thead class="table-light">
@@ -436,6 +343,7 @@
                             <th>車號</th>
                             <th class="text-center">狀態</th>
                             <th class="text-center">智慧鎖</th>
+                            <th class="text-center">付款</th>
                             <th>租借者</th>
                             <th class="text-center">起租時間</th>
                             <th class="text-center">預估費用</th>
@@ -454,13 +362,11 @@
 // ===== 合約地址 =====
 const nkustAddr  = "0xC5C6Bc61a1146a745FA2fa6D300e45A76B8d1Cb4";
 const bikeAddr   = "0xd173C282ff07A282F5874736Bf66b69b46Aee6d7";
-// [BUG 3 修正] 押金授權對象是 Escrow 合約，不是 bikeAddr
 const escrowAddr = "0x775700284d26dF7BA8934C05C83D7066f7079290";
-
 const ADMIN_PASSWORD  = "nkust";
 const WEATHER_API_KEY = "db68851cff88bbfaf24ddcefbccb2a18";
 
-// ===== 合約 ABI =====
+// ===== ABI =====
 const erc20Abi = [
     "function balanceOf(address owner) view returns (uint256)",
     "function approve(address spender, uint256 amount) returns (bool)",
@@ -470,16 +376,23 @@ const erc20Abi = [
 const bikeAbi = [
     "function rentWithNkust(uint8 bikeId)",
     "function returnWithNkust(uint8 bikeId)",
-    // [BUG 1 修正] buyTokens 接收整數，合約內部自行處理 1e18
+    "function rentWithEth(uint8 bikeId) payable",
+    "function returnWithEth(uint8 bikeId) payable",
     "function buyTokens(uint256 nkustAmount) payable",
-    // [BUG 2 修正] getAllBikes 補上 lockBounds 和 lockAddresses
     "function getAllBikes() view returns (uint8[] ids, bool[] available, address[] renters, uint256[] startTimes, bool[] lockBounds, address[] lockAddresses)",
     "function getBike(uint8 bikeId) view returns (bool isAvailable, address renter, uint256 rentStartTime, bool lockBound, address lockAddress)",
     "function estimateFee(address user) view returns (uint256 feeNkust)",
+    "function estimateFeeEth(address user) view returns (uint256 feeEth)",
     "function getQuote(uint256 nkustWei) view returns (uint256 ethWei, uint256 ethUsdPrice, uint256 twdPerUsdRate)",
+    "function getRevenue() view returns (uint256 nkustRev, uint256 ethRev)",
     "function getAllUsers() view returns (address[])",
-    "function users(address user) view returns (uint256 lastRentDay, uint256 feePaidToday, uint256 currentBikeId, bool hasActiveRental)",
+    "function users(address user) view returns (uint256 lastRentDay, uint256 feePaidToday, uint256 currentBikeId, bool hasActiveRental, bool isEthRental)",
     "function twdPerUsd() view returns (uint256)"
+];
+
+const escrowAbi = [
+    "function totalHeld() view returns (uint256)",
+    "function totalEthHeld() view returns (uint256)"
 ];
 
 // ===== 全域狀態 =====
@@ -487,11 +400,13 @@ let globalEstimatedEth = "0";
 let selectedBikeId     = null;
 let feeTimer           = null;
 let rentStartTs        = 0;
+let currentPayMode     = 'nkust'; // 'nkust' | 'eth'
+let currentIsEthRental = false;
 
 const isMobile    = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const hasEthereum = typeof window.ethereum !== 'undefined';
 
-// ===== 前端費率計算 =====
+// ===== 費率計算 =====
 const HALF_HOUR_S   = 30 * 60;
 const RATE_PER_HALF = 5;
 const DAILY_MAX     = 100;
@@ -500,7 +415,6 @@ function todayStartTs(ts) {
     const localTs = ts + 8 * 3600;
     return Math.floor(localTs / 86400) * 86400 - 8 * 3600;
 }
-
 function calcFeeLocal(startTs, endTs) {
     if (endTs <= startTs) return 0;
     let total = 0, cursor = startTs, accumulated = 0;
@@ -510,63 +424,66 @@ function calcFeeLocal(startTs, endTs) {
         if (segEnd > endTs) segEnd = endTs;
         const nextDay = curDayStart + 86400;
         if (segEnd > nextDay) {
-            if (accumulated < DAILY_MAX) {
-                const charge = Math.min(RATE_PER_HALF, DAILY_MAX - accumulated);
-                total += charge; accumulated += charge;
-            }
+            if (accumulated < DAILY_MAX) { const c = Math.min(RATE_PER_HALF, DAILY_MAX - accumulated); total += c; accumulated += c; }
             accumulated = 0; curDayStart = nextDay;
         } else {
-            if (accumulated < DAILY_MAX) {
-                const charge = Math.min(RATE_PER_HALF, DAILY_MAX - accumulated);
-                total += charge; accumulated += charge;
-            }
+            if (accumulated < DAILY_MAX) { const c = Math.min(RATE_PER_HALF, DAILY_MAX - accumulated); total += c; accumulated += c; }
         }
         cursor = segEnd;
     }
     if (endTs > startTs && total === 0) return RATE_PER_HALF;
     return total;
 }
-
 function formatElapsed(seconds) {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
+    const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60;
     if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-// ===== MetaMask =====
-function openInMetaMask() {
-    const url = window.location.href.replace(/^https?:\/\//, '');
-    window.location.href = 'https://metamask.app.link/dapp/' + url;
+// ===== 付款模式切換 =====
+function switchPayMode(mode) {
+    currentPayMode = mode;
+    document.getElementById('btnNkust').className = 'pay-btn' + (mode==='nkust' ? ' active' : '');
+    document.getElementById('btnEth').className   = 'pay-btn' + (mode==='eth' ? ' eth-active' : '');
+    document.getElementById('nkustModeInfo').style.display = mode==='nkust' ? 'block' : 'none';
+    document.getElementById('ethModeInfo').style.display   = mode==='eth'   ? 'block' : 'none';
+    const rentBtn = document.getElementById('rentBtn');
+    if (selectedBikeId !== null) {
+        if (mode === 'eth') {
+            rentBtn.className = 'btn-rent-eth';
+            rentBtn.innerText = `⟠ ETH 租借 SB-${String(selectedBikeId+1).padStart(3,'0')}`;
+            document.getElementById('selectedBikeDepositHint').innerText = '押金為等值 ETH（Chainlink 換算）';
+        } else {
+            rentBtn.className = 'btn-rent';
+            rentBtn.innerText = `🚲 租借 SB-${String(selectedBikeId+1).padStart(3,'0')}`;
+            document.getElementById('selectedBikeDepositHint').innerText = '押金 5000 NKUST 將於還車時退回';
+        }
+    }
 }
 
+// ===== MetaMask =====
+function openInMetaMask() { window.location.href = 'https://metamask.app.link/dapp/' + window.location.href.replace(/^https?:\/\//,''); }
+
 async function connectWallet() {
-    if (!hasEthereum) {
-        if (isMobile) { openInMetaMask(); return; }
-        alert("請先安裝 MetaMask：https://metamask.io");
-        return;
-    }
+    if (!hasEthereum) { if (isMobile) { openInMetaMask(); return; } alert("請先安裝 MetaMask"); return; }
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         window._provider = provider;
         await init(provider);
-    } catch (e) { alert("連接失敗：" + e.message); }
+    } catch(e) { alert("連接失敗：" + e.message); }
 }
 
 function disconnectWallet() {
     if (!confirm("確定要解除錢包連接？")) return;
     window._provider = null;
-    const btn = document.getElementById('connectBtn');
-    btn.innerText = "連接錢包";
-    btn.classList.remove('connected');
+    document.getElementById('connectBtn').innerText = "連接錢包";
+    document.getElementById('connectBtn').classList.remove('connected');
     document.getElementById('disconnectBtn').style.display = 'none';
     document.getElementById('walletAddr').innerText = '';
     document.getElementById('nkustBalanceDisplay').innerText = '-- NKUST';
     document.getElementById('ethBalanceDisplay').innerText   = '-- ETH';
-    document.getElementById('bikesGrid').innerHTML =
-        '<div class="text-center text-muted small py-4 w-100"><i class="bi bi-bicycle fs-2 d-block mb-2"></i>連接錢包後載入車輛狀態</div>';
+    document.getElementById('bikesGrid').innerHTML = '<div class="text-center text-muted small py-4 w-100"><i class="bi bi-bicycle fs-2 d-block mb-2"></i>連接錢包後載入車輛狀態</div>';
     document.getElementById('rentSection').style.display   = 'block';
     document.getElementById('activeSection').style.display = 'none';
     stopFeeTimer();
@@ -580,100 +497,69 @@ function getProvider() {
 
 // ===== 初始化 =====
 async function init(provider) {
-    provider = provider || getProvider();
-    if (!provider) return;
+    provider = provider || getProvider(); if (!provider) return;
     try {
         const signer = provider.getSigner();
         const user   = await signer.getAddress();
-
-        const btn = document.getElementById('connectBtn');
+        const btn    = document.getElementById('connectBtn');
         btn.innerText = "✅ " + user.substring(0,6) + "..." + user.substring(user.length-4);
         btn.classList.add('connected');
         document.getElementById('walletAddr').innerText = user;
         document.getElementById('disconnectBtn').style.display = 'inline-block';
 
-        // NKUST 餘額
-        const token = new ethers.Contract(nkustAddr, erc20Abi, provider);
-        const bal   = await token.balanceOf(user);
-        document.getElementById('nkustBalanceDisplay').innerText =
-            Math.floor(parseFloat(ethers.utils.formatUnits(bal, 18))) + " NKUST";
-
-        // ETH 餘額
+        const token  = new ethers.Contract(nkustAddr, erc20Abi, provider);
+        const bal    = await token.balanceOf(user);
+        document.getElementById('nkustBalanceDisplay').innerText = Math.floor(parseFloat(ethers.utils.formatUnits(bal,18))) + " NKUST";
         const ethBal = await provider.getBalance(user);
-        document.getElementById('ethBalanceDisplay').innerText =
-            parseFloat(ethers.utils.formatEther(ethBal)).toFixed(6) + " ETH";
+        document.getElementById('ethBalanceDisplay').innerText   = parseFloat(ethers.utils.formatEther(ethBal)).toFixed(6) + " ETH";
 
-        // [BUG 3 修正] 授權狀態檢查對象改為 escrowAddr
-        const allow  = await token.allowance(user, escrowAddr);
+        // 授權狀態 Escrow
+        const allowEscrow = await token.allowance(user, escrowAddr);
         const appBtn = document.getElementById('approveBtn');
-        if (allow.gte(ethers.utils.parseUnits("1000", 18))) {
-            appBtn.style.background = "#16a34a";
-            appBtn.innerText = "✅ 授權已完成（Escrow）";
-            appBtn.disabled  = true;
-        } else {
-            appBtn.style.background = "#f59e0b";
-            appBtn.innerText = "🔑 授權 Escrow 使用 NKUST";
-            appBtn.disabled  = false;
-        }
+        if (allowEscrow.gte(ethers.utils.parseUnits("5000",18))) {
+            appBtn.style.background = "#16a34a"; appBtn.innerText = "✅ Escrow 授權已完成"; appBtn.disabled = true;
+        } else { appBtn.style.background = "#f59e0b"; appBtn.innerText = "🔑 授權 Escrow 使用 NKUST（押金）"; appBtn.disabled = false; }
+
+        // 授權狀態 NKUSTBike
+        const allowBike = await token.allowance(user, bikeAddr);
+        const appBtn2 = document.getElementById('approveBtn2');
+        if (allowBike.gte(ethers.utils.parseUnits("100",18))) {
+            appBtn2.style.background = "#16a34a"; appBtn2.innerText = "✅ NKUSTBike 授權已完成"; appBtn2.disabled = true;
+        } else { appBtn2.style.background = "#8b5cf6"; appBtn2.innerText = "🔑 授權 NKUSTBike 使用 NKUST（費用）"; appBtn2.disabled = false; }
 
         await updateOracleDisplay(provider);
         await loadBikes(provider, user);
         await loadRentalStatus(provider, user);
-
-    } catch (e) { console.error("初始化失敗:", e); }
+    } catch(e) { console.error("初始化失敗:", e); }
 }
 
-// ===== 載入車輛 =====
-// [BUG 2 修正] 解構時補上 lockBounds, lockAddresses，並依綁定狀態顯示 badge
+// ===== 車輛 =====
 async function loadBikes(provider, user) {
-    provider = provider || getProvider();
-    if (!provider) return;
+    provider = provider || getProvider(); if (!provider) return;
     try {
         if (!user) user = await provider.getSigner().getAddress();
         const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
-        const [ids, available, renters, startTimes, lockBounds, lockAddresses] = await bike.getAllBikes();
+        const [ids, available, renters, startTimes, lockBounds] = await bike.getAllBikes();
         const grid = document.getElementById('bikesGrid');
         grid.innerHTML = "";
         for (let i = 0; i < ids.length; i++) {
-            const id       = ids[i];
-            const isFree   = available[i];
-            const isMine   = renters[i].toLowerCase() === user.toLowerCase();
-            const isBound  = lockBounds[i];
-            const startTs  = startTimes[i].toNumber();
+            const id = ids[i], isFree = available[i], isMine = renters[i].toLowerCase()===user.toLowerCase(), isBound = lockBounds[i], startTs = startTimes[i].toNumber();
             let tileClass = "bike-tile", badgeHTML = "", extraInfo = "";
-
-            if (!isBound) {
-                // 未綁定智慧鎖，不可租借
-                tileClass += " unbound";
-                badgeHTML = `<div class="bike-status-badge badge-unbound">未綁鎖</div>`;
-            } else if (isMine) {
-                tileClass += " mine";
-                badgeHTML = `<div class="bike-status-badge badge-mine">我的車</div>`;
-            } else if (!isFree) {
-                tileClass += " rented";
-                badgeHTML = `<div class="bike-status-badge badge-rented">租借中</div>`;
-                if (startTs > 0) {
-                    const elapsed = Math.floor(Date.now()/1000) - startTs;
-                    extraInfo = `<div style="font-size:0.65rem;color:#94a3b8;margin-top:2px;">${formatElapsed(elapsed)}</div>`;
-                }
-            } else {
-                badgeHTML = `<div class="bike-status-badge badge-free">可租借</div>`;
-            }
-
+            if (!isBound) { tileClass += " unbound"; badgeHTML = `<div class="bike-status-badge badge-unbound">未綁鎖</div>`; }
+            else if (isMine) { tileClass += " mine"; badgeHTML = `<div class="bike-status-badge badge-mine">我的車</div>`; }
+            else if (!isFree) {
+                tileClass += " rented"; badgeHTML = `<div class="bike-status-badge badge-rented">租借中</div>`;
+                if (startTs > 0) extraInfo = `<div style="font-size:0.65rem;color:#94a3b8;margin-top:2px;">${formatElapsed(Math.floor(Date.now()/1000)-startTs)}</div>`;
+            } else { badgeHTML = `<div class="bike-status-badge badge-free">可租借</div>`; }
             const tile = document.createElement('div');
-            tile.className = tileClass;
-            tile.id        = `bike-tile-${id}`;
+            tile.className = tileClass; tile.id = `bike-tile-${id}`;
             tile.innerHTML = `<div class="bike-emoji">🚲</div><div class="bike-id">SB-${String(id+1).padStart(3,'0')}</div>${badgeHTML}${extraInfo}`;
             if (isFree && isBound && !isMine) tile.onclick = () => selectBike(id);
             grid.appendChild(tile);
         }
-    } catch (e) {
-        document.getElementById('bikesGrid').innerHTML =
-            `<div class="text-danger small text-center py-3 w-100"><i class="bi bi-exclamation-circle me-1"></i>載入失敗，請確認合約地址與網路</div>`;
-    }
+    } catch(e) { document.getElementById('bikesGrid').innerHTML = `<div class="text-danger small text-center py-3 w-100">載入失敗，請確認合約地址與網路</div>`; }
 }
 
-// ===== 選車 =====
 function selectBike(id) {
     document.querySelectorAll('.bike-tile.selected').forEach(t => t.classList.remove('selected'));
     selectedBikeId = id;
@@ -681,8 +567,16 @@ function selectBike(id) {
     document.getElementById('selectedBikeInfo').style.display = 'block';
     document.getElementById('selectedBikeLabel').innerText = `SB-${String(id+1).padStart(3,'0')}`;
     const rentBtn = document.getElementById('rentBtn');
-    rentBtn.disabled  = false;
-    rentBtn.innerText = `🚲 租借 SB-${String(id+1).padStart(3,'0')}`;
+    rentBtn.disabled = false;
+    if (currentPayMode === 'eth') {
+        rentBtn.className = 'btn-rent-eth';
+        rentBtn.innerText = `⟠ ETH 租借 SB-${String(id+1).padStart(3,'0')}`;
+        document.getElementById('selectedBikeDepositHint').innerText = '押金為等值 ETH（Chainlink 換算）';
+    } else {
+        rentBtn.className = 'btn-rent';
+        rentBtn.innerText = `🚲 租借 SB-${String(id+1).padStart(3,'0')}`;
+        document.getElementById('selectedBikeDepositHint').innerText = '押金 5000 NKUST 將於還車時退回';
+    }
 }
 
 // ===== 租借狀態 =====
@@ -693,50 +587,70 @@ async function loadRentalStatus(provider, user) {
         if (userInfo.hasActiveRental) {
             const bikeId   = userInfo.currentBikeId.toNumber();
             const bikeInfo = await bike.getBike(bikeId);
-            rentStartTs = bikeInfo.rentStartTime.toNumber();
+            rentStartTs        = bikeInfo.rentStartTime.toNumber();
+            currentIsEthRental = userInfo.isEthRental;
             document.getElementById('rentSection').style.display   = 'none';
             document.getElementById('activeSection').style.display = 'block';
             document.getElementById('activeBikeId').innerText      = `SB-${String(bikeId+1).padStart(3,'0')}`;
-            document.getElementById('rentStartDisplay').innerText  =
-                new Date(rentStartTs * 1000).toLocaleString();
+            document.getElementById('rentStartDisplay').innerText  = new Date(rentStartTs*1000).toLocaleString();
+            document.getElementById('rentalModeTag').innerText     = currentIsEthRental ? '⟠ ETH' : '🪙 NKUST';
+            document.getElementById('returnBtn').innerText         = currentIsEthRental ? '⟠ ETH 還車並付款' : '還車並付款';
+            if (currentIsEthRental) document.getElementById('ethFeeEstimate').style.display = 'block';
             startFeeTimer();
         } else {
             document.getElementById('rentSection').style.display   = 'block';
             document.getElementById('activeSection').style.display = 'none';
             stopFeeTimer();
         }
-    } catch (e) { console.error("讀取租借狀態失敗:", e); }
+    } catch(e) { console.error("讀取租借狀態失敗:", e); }
 }
 
 // ===== 計時器 =====
 function startFeeTimer() { stopFeeTimer(); updateFeeDisplay(); feeTimer = setInterval(updateFeeDisplay, 1000); }
 function stopFeeTimer()  { if (feeTimer) { clearInterval(feeTimer); feeTimer = null; } }
-function updateFeeDisplay() {
+async function updateFeeDisplay() {
     if (!rentStartTs) return;
-    const now     = Math.floor(Date.now() / 1000);
-    const elapsed = now - rentStartTs;
-    const fee     = calcFeeLocal(rentStartTs, now);
+    const now = Math.floor(Date.now()/1000), elapsed = now - rentStartTs;
+    const fee = calcFeeLocal(rentStartTs, now);
     document.getElementById('elapsedDisplay').innerText = formatElapsed(elapsed);
     document.getElementById('feeDisplay').innerText     = fee + " NKUST";
-    document.getElementById('feeProgressBar').style.width = Math.min(fee / DAILY_MAX * 100, 100) + "%";
+    document.getElementById('feeProgressBar').style.width = Math.min(fee/DAILY_MAX*100,100) + "%";
+    // ETH 費用即時換算
+    if (currentIsEthRental && window._provider) {
+        try {
+            const bike    = new ethers.Contract(bikeAddr, bikeAbi, window._provider);
+            const user    = await window._provider.getSigner().getAddress();
+            const feeEth  = await bike.estimateFeeEth(user);
+            const feeEthDisplay = parseFloat(ethers.utils.formatEther(feeEth)).toFixed(8);
+            document.getElementById('ethFeeEstimate').innerText = `ETH 模式費用預估：${feeEthDisplay} ETH`;
+        } catch(e) {}
+    }
 }
 
-// ===== [BUG 3 修正] 授權目標改為 escrowAddr =====
+// ===== 授權 Escrow =====
 async function handleApprove() {
     const provider = getProvider(); if (!provider) return;
     try {
-        const signer  = provider.getSigner();
-        const user    = await signer.getAddress();
-        const token   = new ethers.Contract(nkustAddr, erc20Abi, signer);
-        const balance = await token.balanceOf(user);
-        if (balance.isZero()) { alert("❌ 餘額為 0，請先購買高科幣"); return; }
-        // 押金流向是 user → Escrow，所以 approve 對象是 escrowAddr
+        const signer = provider.getSigner(), user = await signer.getAddress();
+        const token  = new ethers.Contract(nkustAddr, erc20Abi, signer);
+        if ((await token.balanceOf(user)).isZero()) { alert("❌ 餘額為 0，請先購買高科幣"); return; }
         const tx = await token.approve(escrowAddr, ethers.constants.MaxUint256);
-        alert("⏳ 授權中...");
-        await tx.wait();
-        alert("✅ 授權成功！（已授權 Escrow 合約）");
-        await init(provider);
-    } catch (e) { alert("授權失敗：" + (e.reason || e.message)); }
+        alert("⏳ 授權中..."); await tx.wait();
+        alert("✅ Escrow 授權成功！"); await init(provider);
+    } catch(e) { alert("授權失敗：" + (e.reason || e.message)); }
+}
+
+// ===== 授權 NKUSTBike =====
+async function handleApprove2() {
+    const provider = getProvider(); if (!provider) return;
+    try {
+        const signer = provider.getSigner(), user = await signer.getAddress();
+        const token  = new ethers.Contract(nkustAddr, erc20Abi, signer);
+        if ((await token.balanceOf(user)).isZero()) { alert("❌ 餘額為 0，請先購買高科幣"); return; }
+        const tx = await token.approve(bikeAddr, ethers.constants.MaxUint256);
+        alert("⏳ 授權中..."); await tx.wait();
+        alert("✅ NKUSTBike 授權成功！"); await init(provider);
+    } catch(e) { alert("授權失敗：" + (e.reason || e.message)); }
 }
 
 // ===== 租車 =====
@@ -746,13 +660,24 @@ async function handleRent() {
     try {
         const signer = provider.getSigner();
         const bike   = new ethers.Contract(bikeAddr, bikeAbi, signer);
-        const tx     = await bike.rentWithNkust(selectedBikeId);
-        alert("⏳ 租車交易送出...");
-        await tx.wait();
-        alert("✅ 租車成功！押金 1000 NKUST 已存入 Escrow，開始計時。");
+        if (currentPayMode === 'eth') {
+            // ETH 租車：先取得押金報價
+            const nkustWei    = ethers.utils.parseUnits("5000", 18);
+            const [ethWei]    = await bike.getQuote(nkustWei);
+            const ethBuffer   = ethWei.mul(101).div(100);
+            const ethDisplay  = parseFloat(ethers.utils.formatEther(ethWei)).toFixed(8);
+            if (!confirm(`ETH 租車押金約 ${ethDisplay} ETH\n（Chainlink 即時匯率），確認租借？`)) return;
+            const tx = await bike.rentWithEth(selectedBikeId, { value: ethBuffer });
+            alert("⏳ ETH 租車交易送出..."); await tx.wait();
+            alert("✅ ETH 租車成功！押金已鎖入 Escrow。");
+        } else {
+            const tx = await bike.rentWithNkust(selectedBikeId);
+            alert("⏳ 租車交易送出..."); await tx.wait();
+            alert("✅ 租車成功！押金 5000 NKUST 已鎖入 Escrow。");
+        }
         selectedBikeId = null;
         await init(provider);
-    } catch (e) { alert("租車失敗：" + (e.reason || e.message)); }
+    } catch(e) { alert("租車失敗：" + (e.reason || e.message)); }
 }
 
 // ===== 還車 =====
@@ -766,74 +691,62 @@ async function handleReturn() {
         if (!userInfo.hasActiveRental) { alert("目前沒有租借中的車輛"); return; }
         const bikeId = userInfo.currentBikeId.toNumber();
 
-        const feeNkust   = await bikeContract.estimateFee(user);
-        const feeDisplay = Math.ceil(parseFloat(ethers.utils.formatUnits(feeNkust, 18))) + " NKUST";
-        if (!confirm(`還車費用約 ${feeDisplay}，確認還車並付款？`)) return;
-
-        const tx = await bikeContract.returnWithNkust(bikeId);
-        alert("⏳ 還車交易送出...");
-        await tx.wait();
-        stopFeeTimer();
-        alert("✅ 還車成功！費用已扣除，押金 1000 NKUST 已從 Escrow 退回。");
+        if (userInfo.isEthRental) {
+            // ETH 還車
+            const feeEth     = await bikeContract.estimateFeeEth(user);
+            const feeEthBuf  = feeEth.mul(101).div(100);
+            const feeDisplay = parseFloat(ethers.utils.formatEther(feeEth)).toFixed(8);
+            if (!confirm(`ETH 還車費用約 ${feeDisplay} ETH，確認還車？`)) return;
+            const tx = await bikeContract.returnWithEth(bikeId, { value: feeEthBuf });
+            alert("⏳ ETH 還車交易送出..."); await tx.wait();
+            stopFeeTimer();
+            alert("✅ ETH 還車成功！費用已扣除，押金 ETH 已退回。");
+        } else {
+            // NKUST 還車
+            const feeNkust   = await bikeContract.estimateFee(user);
+            const feeDisplay = Math.ceil(parseFloat(ethers.utils.formatUnits(feeNkust,18))) + " NKUST";
+            if (!confirm(`還車費用約 ${feeDisplay}，確認還車並付款？`)) return;
+            const tx = await bikeContract.returnWithNkust(bikeId);
+            alert("⏳ 還車交易送出..."); await tx.wait();
+            stopFeeTimer();
+            alert("✅ 還車成功！費用已扣除，押金 5000 NKUST 已退回。");
+        }
         await init(provider);
-    } catch (e) { alert("還車失敗：" + (e.data?.message || e.reason || e.message)); }
+    } catch(e) { alert("還車失敗：" + (e.data?.message || e.reason || e.message)); }
 }
 
-// ===== [BUG 1 修正] 購幣：getQuote 傳 wei，buyTokens 傳整數 =====
+// ===== 購幣 =====
 async function calculateBuyQuote() {
-    const amount  = parseFloat(document.getElementById('buyAmount')?.value) || 0;
+    const amount = parseFloat(document.getElementById('buyAmount')?.value) || 0;
     const quoteEl = document.getElementById('ethQuote');
     if (!quoteEl) return;
-    if (amount <= 0) {
-        globalEstimatedEth = "0";
-        quoteEl.innerHTML = "請輸入欲購買數量";
-        return;
-    }
+    if (amount <= 0) { globalEstimatedEth = "0"; quoteEl.innerHTML = "請輸入欲購買數量"; return; }
     try {
         const provider = getProvider(); if (!provider) return;
         const bike     = new ethers.Contract(bikeAddr, bikeAbi, provider);
-        // getQuote 接收 wei 單位
         const nkustWei = ethers.utils.parseUnits(String(amount), 18);
-        const [ethWei, ethUsdPrice, twdPerUsdRate] = await bike.getQuote(nkustWei);
+        const [ethWei] = await bike.getQuote(nkustWei);
         globalEstimatedEth = ethers.utils.formatEther(ethWei);
-        const ethDisplay   = parseFloat(globalEstimatedEth).toFixed(8);
-        quoteEl.innerHTML  = `需支付約 <span class="text-danger fw-bold">${ethDisplay} ETH</span>`;
-
-        const oneNkustEth = (parseFloat(ethers.utils.formatEther(ethWei)) / amount).toFixed(8);
-        const oneNkustEl  = document.getElementById('oneNkustEthDisplay');
-        if (oneNkustEl) oneNkustEl.innerText = oneNkustEth + " ETH";
-    } catch (e) {
-        quoteEl.innerHTML = `<span class="text-danger">匯率查詢失敗，請確認網路</span>`;
-        console.error("getQuote 失敗:", e);
-    }
+        quoteEl.innerHTML  = `需支付約 <span class="text-danger fw-bold">${parseFloat(globalEstimatedEth).toFixed(8)} ETH</span>`;
+        const oneNkustEl = document.getElementById('oneNkustEthDisplay');
+        if (oneNkustEl) oneNkustEl.innerText = (parseFloat(globalEstimatedEth)/amount).toFixed(8) + " ETH";
+    } catch(e) { quoteEl.innerHTML = `<span class="text-danger">匯率查詢失敗</span>`; }
 }
 
 async function handleBuyTokens() {
     const provider = getProvider(); if (!provider) return;
     const amount   = document.getElementById('buyAmount').value;
     if (!amount || parseFloat(amount) <= 0) { alert("請輸入有效數量"); return; }
-    if (!globalEstimatedEth || globalEstimatedEth === "0") {
-        alert("請先輸入數量取得報價");
-        return;
-    }
+    if (!globalEstimatedEth || globalEstimatedEth === "0") { alert("請先輸入數量取得報價"); return; }
     try {
         const signer   = provider.getSigner();
         const bike     = new ethers.Contract(bikeAddr, bikeAbi, signer);
-
-        // getQuote 傳 wei 取得最新報價
         const nkustWei = ethers.utils.parseUnits(String(amount), 18);
         const [ethWei] = await bike.getQuote(nkustWei);
-
-        // 加 1% buffer
-        const ethWithBuffer = ethWei.mul(101).div(100);
-
-        // [BUG 1 修正] buyTokens 傳整數（合約內部自乘 1e18）
-        const tx = await bike.buyTokens(parseInt(amount), { value: ethWithBuffer });
-        alert("⏳ 購幣中...");
-        await tx.wait();
-        alert("✅ 成功購買 " + amount + " NKUST！");
-        await init(provider);
-    } catch (e) { alert("購幣失敗：" + (e.reason || e.message)); }
+        const tx = await bike.buyTokens(parseInt(amount), { value: ethWei.mul(101).div(100) });
+        alert("⏳ 購幣中..."); await tx.wait();
+        alert("✅ 成功購買 " + amount + " NKUST！"); await init(provider);
+    } catch(e) { alert("購幣失敗：" + (e.reason || e.message)); }
 }
 
 // ===== Oracle 顯示 =====
@@ -844,9 +757,16 @@ async function updateOracleDisplay(provider) {
         const oneNkust = ethers.utils.parseUnits("1", 18);
         const [ethWei] = await bike.getQuote(oneNkust);
         const oneNkustEth = parseFloat(ethers.utils.formatEther(ethWei)).toFixed(8);
-        const oneNkustEl  = document.getElementById('oneNkustEthDisplay');
-        if (oneNkustEl) oneNkustEl.innerText = oneNkustEth + " ETH";
-    } catch (e) { console.error("Oracle 顯示更新失敗:", e); }
+        const el = document.getElementById('oneNkustEthDisplay');
+        if (el) el.innerText = oneNkustEth + " ETH";
+        // 押金等值 ETH
+        const depositWei   = ethers.utils.parseUnits("5000", 18);
+        const [depEthWei]  = await bike.getQuote(depositWei);
+        const depEthEl = document.getElementById('depositEthDisplay');
+        if (depEthEl) depEthEl.innerText = parseFloat(ethers.utils.formatEther(depEthWei)).toFixed(8) + " ETH";
+        const depInfoEl = document.getElementById('depositEthInfoDisplay');
+        if (depInfoEl) depInfoEl.innerText = parseFloat(ethers.utils.formatEther(depEthWei)).toFixed(8) + " ETH";
+    } catch(e) { console.error("Oracle 顯示更新失敗:", e); }
 }
 
 // ===== 天氣 =====
@@ -854,9 +774,9 @@ async function updateWeather(city) {
     try {
         const res  = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${WEATHER_API_KEY}&units=metric&lang=zh_tw`);
         const data = await res.json();
-        document.getElementById('cityName').innerText = city === 'Taipei' ? "台北市" : "高雄市";
+        document.getElementById('cityName').innerText = city==='Taipei' ? "台北市" : "高雄市";
         document.getElementById('cityTemp').innerText = Math.round(data.main.temp) + "°C";
-    } catch (e) { console.error("天氣更新失敗"); }
+    } catch(e) {}
 }
 
 // ===== 管理員 =====
@@ -871,88 +791,89 @@ function checkPassword() {
     } else { alert("密碼錯誤！"); }
 }
 
-// [BUG 2 修正] 管理員後台補上智慧鎖欄位
 async function refreshAdminData() {
     const provider = getProvider(); if (!provider) return;
     const btn = document.querySelector('button[onclick="refreshAdminData()"]');
     if (btn) btn.innerText = "🔄 同步中...";
     try {
-        const bike = new ethers.Contract(bikeAddr, bikeAbi, provider);
-        const [ids, available, renters, startTimes, lockBounds, lockAddresses] = await bike.getAllBikes();
+        const bike   = new ethers.Contract(bikeAddr, bikeAbi, provider);
+        const escrow = new ethers.Contract(escrowAddr, escrowAbi, provider);
+        const token  = new ethers.Contract(nkustAddr, erc20Abi, provider);
+
+        // 收益
+        const [nkustRev, ethRev] = await bike.getRevenue();
+        document.getElementById('adminNkustRevenue').innerText = Math.floor(parseFloat(ethers.utils.formatUnits(nkustRev,18))) + " NKUST";
+        document.getElementById('adminEthRevenue').innerText   = parseFloat(ethers.utils.formatEther(ethRev)).toFixed(8) + " ETH";
+
+        // 合約餘額
+        const nkustBal = await token.balanceOf(bikeAddr);
+        document.getElementById('adminNkustBal').innerText = Math.floor(parseFloat(ethers.utils.formatUnits(nkustBal,18))) + " NKUST";
+
+        // Escrow 鎖定
+        const escrowNkust = await escrow.totalHeld();
+        document.getElementById('adminEscrowBal').innerText = Math.floor(parseFloat(ethers.utils.formatUnits(escrowNkust,18))) + " NKUST";
+
+        // 車輛列表
+        const [ids, available, renters, startTimes, lockBounds] = await bike.getAllBikes();
         const tbody = document.getElementById('adminTableBody');
-        if (!tbody) return;
         tbody.innerHTML = "";
-        const fmt = ts => (!ts || ts === 0) ? "-" : new Date(ts * 1000).toLocaleString();
+        const fmt = ts => (!ts||ts===0) ? "-" : new Date(ts*1000).toLocaleString();
         for (let i = 0; i < ids.length; i++) {
-            const isFree      = available[i];
-            const isBound     = lockBounds[i];
-            const renter      = renters[i];
-            const startTs     = startTimes[i].toNumber();
-            const lockAddr    = lockAddresses[i];
-            let feeStr = "-";
+            const isFree = available[i], isBound = lockBounds[i], renter = renters[i], startTs = startTimes[i].toNumber();
+            let feeStr = "-", payMode = "-";
             if (!isFree) {
                 try {
-                    const feeNkust = await bike.estimateFee(renter);
-                    feeStr = Math.ceil(parseFloat(ethers.utils.formatUnits(feeNkust, 18))) + " NKUST";
+                    const userInfo = await bike.users(renter);
+                    payMode = userInfo.isEthRental ? '<span class="badge bg-warning text-dark">ETH</span>' : '<span class="badge bg-primary">NKUST</span>';
+                    if (userInfo.isEthRental) {
+                        const feeEth = await bike.estimateFeeEth(renter);
+                        feeStr = parseFloat(ethers.utils.formatEther(feeEth)).toFixed(8) + " ETH";
+                    } else {
+                        const feeNkust = await bike.estimateFee(renter);
+                        feeStr = Math.ceil(parseFloat(ethers.utils.formatUnits(feeNkust,18))) + " NKUST";
+                    }
                 } catch(e) {}
             }
-            const statusBadge = isFree
-                ? '<span class="badge bg-success">可租借</span>'
-                : '<span class="badge bg-warning text-dark">租借中</span>';
-            const lockBadge   = isBound
-                ? `<span class="badge bg-info text-dark" title="${lockAddr}">已綁定</span>`
-                : '<span class="badge bg-secondary">未綁鎖</span>';
-            const shortAddr   = isFree ? "-" : renter.substring(0,8) + "..." + renter.substring(renter.length-4);
-            tbody.innerHTML += `
-                <tr>
-                    <td class="fw-bold">SB-${String(ids[i]+1).padStart(3,'0')}</td>
-                    <td class="text-center">${statusBadge}</td>
-                    <td class="text-center">${lockBadge}</td>
-                    <td class="font-monospace" title="${renter}">${shortAddr}</td>
-                    <td class="text-center">${fmt(startTs)}</td>
-                    <td class="text-center">${feeStr}</td>
-                </tr>`;
+            const statusBadge = isFree ? '<span class="badge bg-success">可租借</span>' : '<span class="badge bg-warning text-dark">租借中</span>';
+            const lockBadge   = isBound ? '<span class="badge bg-info text-dark">已綁定</span>' : '<span class="badge bg-secondary">未綁鎖</span>';
+            const shortAddr   = isFree ? "-" : renter.substring(0,8)+"..."+renter.substring(renter.length-4);
+            tbody.innerHTML += `<tr>
+                <td class="fw-bold">SB-${String(ids[i]+1).padStart(3,'0')}</td>
+                <td class="text-center">${statusBadge}</td>
+                <td class="text-center">${lockBadge}</td>
+                <td class="text-center">${payMode}</td>
+                <td class="font-monospace" title="${renter}">${shortAddr}</td>
+                <td class="text-center">${fmt(startTs)}</td>
+                <td class="text-center">${feeStr}</td>
+            </tr>`;
         }
         if (btn) btn.innerText = "🔄 刷新";
-    } catch (e) {
-        console.error("後台讀取失敗:", e);
-        if (btn) btn.innerText = "❌ 失敗";
-    }
+    } catch(e) { console.error("後台讀取失敗:", e); if (btn) btn.innerText = "❌ 失敗"; }
 }
 
 // ===== Oracle 展示 =====
 async function queryGetQuote() {
-    const amount   = parseFloat(document.getElementById('quoteInput').value) || 0;
-    const resultEl = document.getElementById('quoteResult');
-    const loadEl   = document.getElementById('quoteLoading');
-    const errorEl  = document.getElementById('quoteError');
+    const amount = parseFloat(document.getElementById('quoteInput').value) || 0;
+    const resultEl = document.getElementById('quoteResult'), loadEl = document.getElementById('quoteLoading'), errorEl = document.getElementById('quoteError');
     if (amount <= 0) { alert("請輸入有效數量"); return; }
-    resultEl.style.display = 'none';
-    errorEl.style.display  = 'none';
-    loadEl.style.display   = 'block';
+    resultEl.style.display = 'none'; errorEl.style.display = 'none'; loadEl.style.display = 'block';
     try {
         const provider = getProvider(); if (!provider) return;
         const bike     = new ethers.Contract(bikeAddr, bikeAbi, provider);
         const nkustWei = ethers.utils.parseUnits(String(amount), 18);
         const [ethWei, ethUsdPrice, twdPerUsdRate] = await bike.getQuote(nkustWei);
-        const ethAmount    = parseFloat(ethers.utils.formatEther(ethWei));
-        const ethUsdNum    = parseFloat(ethers.utils.formatUnits(ethUsdPrice, 18));
-        const twdPerUsdNum = twdPerUsdRate.toNumber();
+        const ethAmount = parseFloat(ethers.utils.formatEther(ethWei));
+        const ethUsdNum = parseFloat(ethers.utils.formatUnits(ethUsdPrice, 18));
+        const twdNum    = twdPerUsdRate.toNumber();
         document.getElementById('quoteEth').innerText    = ethAmount.toFixed(8) + " ETH";
-        document.getElementById('quoteEthUsd').innerText = "$ " + ethUsdNum.toLocaleString(undefined, {maximumFractionDigits: 2});
-        document.getElementById('quoteTwdUsd').innerText = "1 USD = " + twdPerUsdNum + " TWD";
+        document.getElementById('quoteEthUsd').innerText = "$ " + ethUsdNum.toLocaleString(undefined,{maximumFractionDigits:2});
+        document.getElementById('quoteTwdUsd').innerText = "1 USD = " + twdNum + " TWD";
         document.getElementById('quoteFormulaText').innerHTML = `
             ${amount} NKUST × (1 TWD / 1 NKUST) = ${amount} TWD<br>
-            ${amount} TWD ÷ ${twdPerUsdNum} = ${(amount / twdPerUsdNum).toFixed(4)} USD<br>
-            ${(amount / twdPerUsdNum).toFixed(4)} USD ÷ $${ethUsdNum.toFixed(2)} = <strong style="color:#0284c7">${ethAmount.toFixed(8)} ETH</strong>
-        `;
-        loadEl.style.display   = 'none';
-        resultEl.style.display = 'block';
-    } catch (e) {
-        loadEl.style.display  = 'none';
-        errorEl.style.display = 'block';
-        errorEl.innerText     = "查詢失敗：" + (e.reason || e.message);
-    }
+            ${amount} TWD ÷ ${twdNum} = ${(amount/twdNum).toFixed(4)} USD<br>
+            ${(amount/twdNum).toFixed(4)} USD ÷ $${ethUsdNum.toFixed(2)} = <strong style="color:#0284c7">${ethAmount.toFixed(8)} ETH</strong>`;
+        loadEl.style.display = 'none'; resultEl.style.display = 'block';
+    } catch(e) { loadEl.style.display = 'none'; errorEl.style.display = 'block'; errorEl.innerText = "查詢失敗：" + (e.reason||e.message); }
 }
 
 // ===== 啟動 =====
@@ -962,11 +883,8 @@ async function startApp() {
     document.getElementById('buyAmount')?.addEventListener('input', calculateBuyQuote);
     if (hasEthereum) {
         try {
-            const accounts = await window.ethereum.request({ method:'eth_accounts' });
-            if (accounts.length > 0) {
-                window._provider = new ethers.providers.Web3Provider(window.ethereum);
-                await init(window._provider);
-            }
+            const accounts = await window.ethereum.request({method:'eth_accounts'});
+            if (accounts.length > 0) { window._provider = new ethers.providers.Web3Provider(window.ethereum); await init(window._provider); }
         } catch(e) {}
         window.ethereum.on('accountsChanged', () => location.reload());
         window.ethereum.on('chainChanged',    () => location.reload());
@@ -975,10 +893,7 @@ async function startApp() {
 
 setInterval(async () => {
     if (window._provider) {
-        try {
-            const user = await window._provider.getSigner().getAddress();
-            await loadBikes(window._provider, user);
-        } catch(e) {}
+        try { const user = await window._provider.getSigner().getAddress(); await loadBikes(window._provider, user); } catch(e) {}
     }
 }, 30000);
 
