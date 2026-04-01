@@ -468,18 +468,13 @@ async function connectWallet() {
     if (!hasEthereum) { if (isMobile) { openInMetaMask(); return; } alert("請先安裝 MetaMask"); return; }
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
         await provider.send("eth_requestAccounts", []);
         window._provider = provider;
         await init(provider);
     } catch(e) { alert("連接失敗：" + e.message); }
 }
     
-const network = await provider.getNetwork();
-if (network.chainId !== 11155111) {
-    alert("請切換到 Sepolia");
-    return;
-}
+
     
 function disconnectWallet() {
     if (!confirm("確定要解除錢包連接？")) return;
