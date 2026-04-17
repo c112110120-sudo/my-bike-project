@@ -198,7 +198,7 @@
 
 <script>
 // ===== 合約設定 =====
-const bikeAddr = "0x02cCAa142A7A6b0F990D6538fA3601ad5155082f";
+const bikeAddr = "0x4448bBd1F71a9aDC483C7f92CB19791368f734AE";
 
 // [修正] getBike 補上 lockBound, lockAddress 回傳值（與合約一致）
 const bikeAbi = [
@@ -206,7 +206,10 @@ const bikeAbi = [
     "function unbindLock(uint8 bikeId)",
     "function getBike(uint8 bikeId) view returns (bool isAvailable, address renter, uint256 rentStartTime, bool lockBound, address lockAddress)",
     "event BikeRented(address indexed user, uint8 indexed bikeId, uint256 depositNkust)",
-    "event BikeReturned(address indexed user, uint8 indexed bikeId, uint256 feeNkust)"
+    "event BikeRentedEth(address indexed user, uint8 indexed bikeId, uint256 depositEth)",
+    "event BikeReturned(address indexed user, uint8 indexed bikeId, uint256 feeNkust)",
+    "event BikeReturnedEth(address indexed user, uint8 indexed bikeId, uint256 feeEth)",
+    "event ForceReturned(uint8 indexed bikeId, address indexed renter, bool depositRefunded, address operator)"
 ];
 
 // ===== 狀態 =====
@@ -325,16 +328,42 @@ function startListening() {
     bike.on("BikeRented", (user, bikeId, deposit) => {
         const id = bikeId instanceof ethers.BigNumber ? bikeId.toNumber() : bikeId;
         if (!(id in boundBikes)) return;
-        addLog(`🔓 ${bikeLabel(id)} 已被租借，開鎖`, "green");
+        addLog(`🔓 ${bikeLabel(id)} 已被租借（NKUST），開鎖`, "green");
+        boundBikes[id].locked = false;
+        updateBikeCard(id, false);
+    });
+
+    bike.on("BikeRentedEth", (user, bikeId, deposit) => {
+        const id = bikeId instanceof ethers.BigNumber ? bikeId.toNumber() : bikeId;
+        if (!(id in boundBikes)) return;
+        addLog(`🔓 ${bikeLabel(id)} 已被租借（ETH），開鎖`, "green");
         boundBikes[id].locked = false;
         updateBikeCard(id, false);
     });
 
     bike.on("BikeReturned", (user, bikeId, fee) => {
-        const id  = bikeId instanceof ethers.BigNumber ? bikeId.toNumber() : bikeId;
+        const id   = bikeId instanceof ethers.BigNumber ? bikeId.toNumber() : bikeId;
         const feeN = Math.ceil(parseFloat(ethers.utils.formatUnits(fee, 18)));
         if (!(id in boundBikes)) return;
         addLog(`🔒 ${bikeLabel(id)} 已還車（費用 ${feeN} NKUST），上鎖`, "red");
+        boundBikes[id].locked = true;
+        updateBikeCard(id, true);
+    });
+
+    bike.on("BikeReturnedEth", (user, bikeId, fee) => {
+        const id   = bikeId instanceof ethers.BigNumber ? bikeId.toNumber() : bikeId;
+        const feeE = parseFloat(ethers.utils.formatEther(fee)).toFixed(6);
+        if (!(id in boundBikes)) return;
+        addLog(`🔒 ${bikeLabel(id)} 已還車（費用 ${feeE} ETH），上鎖`, "red");
+        boundBikes[id].locked = true;
+        updateBikeCard(id, true);
+    });
+
+    bike.on("ForceReturned", (bikeId, renter, depositRefunded, operator) => {
+        const id = bikeId instanceof ethers.BigNumber ? bikeId.toNumber() : bikeId;
+        if (!(id in boundBikes)) return;
+        const refundMsg = depositRefunded ? "押金已退" : "押金未退";
+        addLog(`⚠️ ${bikeLabel(id)} 被管理員強制還車（${refundMsg}），上鎖`, "yellow");
         boundBikes[id].locked = true;
         updateBikeCard(id, true);
     });
