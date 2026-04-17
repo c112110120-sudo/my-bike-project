@@ -307,7 +307,7 @@
             <div class="table-responsive">
                 <table class="table table-hover align-middle small">
                     <thead class="table-light">
-                        <tr><th>車號</th><th class="text-center">狀態</th><th class="text-center">智慧鎖</th><th class="text-center">付款</th><th>租借者</th><th class="text-center">起租時間</th><th class="text-center">預估費用</th></tr>
+                        <tr><th>車號</th><th class="text-center">狀態</th><th class="text-center">智慧鎖</th><th class="text-center">付款</th><th>租借者</th><th class="text-center">起租時間</th><th class="text-center">預估費用</th><th class="text-center">操作</th></tr>
                     </thead>
                     <tbody id="adminTableBody"></tbody>
                 </table>
@@ -320,8 +320,8 @@
 
 <script>
 const nkustAddr  = "0xC5C6Bc61a1146a745FA2fa6D300e45A76B8d1Cb4";
-const bikeAddr   = "0x02cCAa142A7A6b0F990D6538fA3601ad5155082f";
-const escrowAddr = "0x750EEE353E557Ea97f81Afd77F2e86FC3B855e89";
+const bikeAddr   = "0x4448bBd1F71a9aDC483C7f92CB19791368f734AE";
+const escrowAddr = "0x82b1BC16905e6aF601DDDE7E33AD675EE1bD55c2";
 const ADMIN_PASSWORD  = "nkust";
 const WEATHER_API_KEY = "db68851cff88bbfaf24ddcefbccb2a18";
 const SEPOLIA_CHAIN_ID = "0xaa36a7";
@@ -345,7 +345,11 @@ const bikeAbi = [
     "function getRevenue() view returns (uint256 nkustRev, uint256 ethRev)",
     "function getAllUsers() view returns (address[])",
     "function users(address user) view returns (uint256 lastRentDay, uint256 feePaidToday, uint256 currentBikeId, bool hasActiveRental, bool isEthRental)",
-    "function twdPerUsd() view returns (uint256)"
+    "function twdPerUsd() view returns (uint256)",
+    "function forceReturn(uint8 bikeId, bool refundDeposit)",
+    "function submitDispute(uint8 bikeId, string reason)",
+    "function disputeCount() view returns (uint256)",
+    "function getDispute(uint256 id) view returns (address renter, uint8 bikeId, string reason, uint256 submittedAt, bool resolved, bool approved)"
 ];
 const escrowAbi = [
     "function totalHeld() view returns (uint256)",
@@ -683,10 +687,37 @@ async function refreshAdminData(){
             const statusBadge=isFree?'<span class="badge bg-success">可租借</span>':'<span class="badge bg-warning text-dark">租借中</span>';
             const lockBadge=isBound?'<span class="badge bg-info text-dark">已綁定</span>':'<span class="badge bg-secondary">未綁鎖</span>';
             const shortAddr=isFree?"-":renter.substring(0,8)+"..."+renter.substring(renter.length-4);
-            tbody.innerHTML+=`<tr><td class="fw-bold">SB-${String(ids[i]+1).padStart(3,'0')}</td><td class="text-center">${statusBadge}</td><td class="text-center">${lockBadge}</td><td class="text-center">${payMode}</td><td class="font-monospace" title="${renter}">${shortAddr}</td><td class="text-center">${fmt(startTs)}</td><td class="text-center">${feeStr}</td></tr>`;
+            const actionBtn=isFree?"-":`
+                <div class="d-flex flex-column gap-1">
+                    <button class="btn btn-danger btn-sm" style="font-size:0.7rem;white-space:nowrap;" onclick="handleForceReturn(${ids[i]},true)">⚡ 強制還車（退押金）</button>
+                    <button class="btn btn-outline-danger btn-sm" style="font-size:0.7rem;white-space:nowrap;" onclick="handleForceReturn(${ids[i]},false)">⚡ 強制還車（不退款）</button>
+                </div>`;
+            tbody.innerHTML+=`<tr><td class="fw-bold">SB-${String(ids[i]+1).padStart(3,'0')}</td><td class="text-center">${statusBadge}</td><td class="text-center">${lockBadge}</td><td class="text-center">${payMode}</td><td class="font-monospace" title="${renter}">${shortAddr}</td><td class="text-center">${fmt(startTs)}</td><td class="text-center">${feeStr}</td><td class="text-center">${actionBtn}</td></tr>`;
         }
         if(btn)btn.innerText="🔄 刷新";
     }catch(e){console.error("後台讀取失敗:",e);if(btn)btn.innerText="❌ 失敗";}
+}
+
+async function handleForceReturn(bikeId, refundDeposit) {
+    const label = `SB-${String(bikeId+1).padStart(3,'0')}`;
+    const msg   = refundDeposit
+        ? `強制還車 ${label} 並退還押金？\n（適用：設備故障、系統錯誤）`
+        : `強制還車 ${label} 但不退押金？\n（適用：用戶違規、車輛損壞）`;
+    if (!confirm(msg)) return;
+
+    const provider = getProvider(); if (!provider) return;
+    try {
+        const signer = provider.getSigner();
+        const bike   = new ethers.Contract(bikeAddr, bikeAbi, signer);
+        const tx     = await bike.forceReturn(bikeId, refundDeposit);
+        alert('⏳ 強制還車交易送出...');
+        await tx.wait();
+        const result = refundDeposit ? '押金已退還' : '押金未退還';
+        alert(`✅ ${label} 強制還車成功！${result}`);
+        await refreshAdminData();
+    } catch(e) {
+        alert('強制還車失敗：' + (e.reason || e.message) + '\n（需要 owner 錢包）');
+    }
 }
 
 async function queryGetQuote(){
